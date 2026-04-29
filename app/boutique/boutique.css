@@ -1,0 +1,72 @@
+.boutique-root {
+  /* Quiet-luxury monochrome palette */
+  --ink: #0a0a0a;
+  --ink-soft: #2a2a2a;
+  --ink-muted: #6b6b6b;
+  --ink-faint: #a8a8a8;
+  --line: #e8e8e6;
+  --line-soft: #f1f0ee;
+  --surface: #ffffff;
+  --cream: #faf9f7;
+  --warm: #f4f1ec;
+
+  /* Single warm-stone accent — used sparingly, not loud */
+  --brand: #1a1a1a;
+  --brand-dark: #0a0a0a;
+  --brand-light: #c2a87a;
+
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-arabic), var(--font-sans), system-ui, sans-serif;
+  font-feature-settings: "kern", "liga";
+}
+
+.boutique-root *::selection {
+  background: var(--ink);
+  color: #fff;
+}
+
+.boutique-root .font-serif {
+  font-family: var(--font-display), "Times New Roman", serif;
+  font-feature-settings: "kern", "liga", "dlig";
+}
+
+.boutique-root .font-display {
+  font-family: var(--font-display), "Times New Roman", serif;
+  letter-spacing: -0.01em;
+}
+
+.boutique-root .font-sans-latin {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.boutique-root .num {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Wordmark — used for the RACHÉL brand text */
+.boutique-root .wordmark {
+  font-family: var(--font-display), "Times New Roman", serif;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  display: inline-block;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+@keyframes shimmer {
+  0% { background-position: -400% 0; }
+  100% { background-position: 400% 0; }
+}
+
+.boutique-root .shimmer {
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.04), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2.4s ease-in-out infinite;
+}
+
+.boutique-root .no-scrollbar::-webkit-scrollbar { display: none; }
+.boutique-root .no-scrollbar { scrollbar-width: none; }

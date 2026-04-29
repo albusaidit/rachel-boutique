@@ -1,0 +1,533 @@
+"use client";
+
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+export type Locale = "ar" | "en" | "fr";
+export const LOCALES: readonly Locale[] = ["ar", "en", "fr"] as const;
+const STORAGE_KEY = "rachel-locale";
+
+const dictionaries = {
+  ar: {
+    dir: "rtl" as const,
+    lang: "ar",
+    nav: {
+      menu: "افتح القائمة",
+      search: "ابحثي",
+      search_label: "ابحثي عن قطعتك",
+      wishlist: "المفضلة",
+      cart: "السلة",
+      cart_count: (n: number) => `السلة: ${n} قطعة`,
+      lang_label: "تبديل اللغة",
+    },
+    brand_reveal: {
+      maison: "MAISON · EST. 2026",
+      tag_l1: "Quiet luxury,",
+      tag_l2: "redefined.",
+      sectors: "أزياء · عطور · جمال",
+    },
+    marquee: [
+      "شحن مجاني فوق ٥٠٠ ر.س",
+      "إرجاع مجاني خلال ١٤ يوم",
+      "تغليف هدايا مجاني",
+      "تقسيط حتى ٦ أشهر بدون فوائد",
+      "دعم واتساب ٢٤/٧",
+    ],
+    story: {
+      eyebrow: "قصتنا",
+      title_l1: "أناقةٌ",
+      title_l2: "تَصنع نفسَها",
+      body_p1: "في RACHÉL نؤمن أن الأناقة ليست صاخبة. هي انتقاءٌ هادئ، وقماشٌ يعرف جسدَك، وقصّةٌ لا تحتاج أن تُقال. كل قطعة عندنا تُختار من خياطين نعرفهم بالاسم، ونزورهم، ونؤمن بعملهم.",
+      body_p2: "نحن لا نصنع موضةً تنفد بعد ستة أشهر. نصنع خزانةً تدوم.",
+      cta: "اعرفي قصتنا كاملة",
+    },
+    product_grid: {
+      filter_all: "الكل",
+      filter_new: "جديد",
+      filter_bestseller: "الأكثر مبيعاً",
+      filter_sale: "تخفيضات",
+      sort_featured: "مميّز",
+      sort_new: "الأحدث",
+      sort_price_low: "السعر: من الأقل",
+      sort_price_high: "السعر: من الأعلى",
+      sort_label: "ترتيب:",
+      count_unit: (n: number) => `${n} قطعة`,
+      slide_label: (n: number) => `الشريحة ${n}`,
+      prev: "السابق",
+      next: "التالي",
+    },
+    sections: {
+      new_title: "جديد هذا الأسبوع",
+      new_sub: "وصلت لتوّها — من الأزياء إلى العطور، اختيار لا يتكرر.",
+      bestsellers_title: "الأكثر طلباً",
+      bestsellers_sub: "قطع أحبّها مجتمعنا قبلكِ.",
+      perfumes_title: "عطور وعود",
+      perfumes_sub: "عود كمبودي، مسك، ورد طائفي. رائحةٌ تبقى.",
+      beauty_title: "الجمال الطبيعي",
+      beauty_sub: "زيوت، زبدة شيا، وصفات هندية أصيلة.",
+    },
+    footer: {
+      shop_title: "المتجر",
+      shop_links: ["جديد هذا الأسبوع", "فساتين", "معاطف", "حقائب", "إكسسوارات", "تخفيضات"],
+      service_title: "خدمة العملاء",
+      service_links: ["تواصلي معنا", "دليل المقاسات", "الشحن والإرجاع", "الأسئلة الشائعة", "تتبع طلبكِ"],
+      brand_title: "RACHÉL",
+      brand_links: ["قصتنا", "مجلة الموضة", "الصحافة", "وظائف", "برنامج العضوية"],
+      tagline: "أزياء نسائية فاخرة، أحذية، آلات شعر، منتجات تجميل وعطور — مختارة بعناية.",
+      newsletter_placeholder: "اشتركي في النشرة",
+      subscribe: "اشتراك",
+      welcome_msg: "أهلاً بكِ في عائلة RACHÉL",
+      invalid_email: "أدخلي بريداً إلكترونياً صحيحاً",
+      copyright: "© 2026 RACHÉL. جميع الحقوق محفوظة.",
+      privacy: "سياسة الخصوصية",
+      terms: "الشروط والأحكام",
+      legal: "الأحكام القانونية",
+      ig: "انستجرام",
+      tt: "تيك توك",
+      wa: "واتساب",
+    },
+    side_menu: {
+      close: "إغلاق",
+      search_placeholder: "ابحثي عن قطعة أو قسم...",
+      new_this_week: "✨ جديد هذا الأسبوع",
+      sale_quick: "🎁 تخفيضات",
+      contact_us: "تواصلي معنا",
+      whatsapp_label: "واتساب — ٠٥٠ ٠٠٠ ٠٠٠٠",
+    },
+    product: {
+      badge_new: "جديد",
+      badge_sale: "تخفيض",
+      badge_bestseller: "الأكثر مبيعاً",
+      badge_limited: "محدود",
+      sold_out: "نفد المخزون",
+      quick_add: "إضافة سريعة",
+      only_n_left: (n: number) => `متبقي ${n} فقط`,
+      added_to_cart: (name: string) => `تمت إضافة "${name}" إلى السلة`,
+      currency: "ر.س",
+    },
+    quick_view: {
+      size: "المقاس",
+      color: "اللون",
+      qty: "الكمية",
+      add_to_cart: "أضيفي إلى السلة",
+      add_to_wishlist: "أضيفي للمفضلة",
+      free_shipping_over: "شحن مجاني فوق ٥٠٠ ر.س",
+      free_returns_14d: "إرجاع مجاني خلال ١٤ يوم",
+      size_guide: "دليل المقاسات",
+      pick_size_first: "اختاري المقاس أولاً",
+      close: "إغلاق",
+      image_n: (n: number) => `صورة ${n}`,
+      limited_edition: "إصدار محدود",
+      limited_left: (n: number) => `متبقي ${n} فقط — الإصدار محدود`,
+      new_tag: "جديد",
+    },
+    cart: {
+      title: "سلّتكِ",
+      checkout_title: "تأكيد الطلب",
+      count_unit: (n: number) => `${n} ${n === 1 ? "قطعة" : "قطع"}`,
+      close: "إغلاق",
+      empty_title: "سلّتكِ فارغة",
+      empty_sub: "اكتشفي قطعنا المختارة وأضيفي ما يشبهكِ.",
+      empty_cta: "ابدئي التسوّق",
+      ship_progress: (left: number) =>
+        `أضيفي ${left.toLocaleString("ar-SA")} ر.س للحصول على توصيل مجاني`,
+      ship_unlocked: "✓ حصلتِ على التوصيل المجاني",
+      size_prefix: "مقاس",
+      qty_minus: "نقص",
+      qty_plus: "زيادة",
+      remove: "حذف",
+      subtotal: "المجموع الفرعي",
+      shipping: "التوصيل",
+      free: "مجاني",
+      ship_pending: "يُحسب لاحقاً",
+      total: "الإجمالي",
+      checkout: "إتمام الطلب",
+      empty_cart: "إفراغ السلة",
+      back_to_cart: "عودة إلى السلة",
+      label_name: "الاسم الكامل",
+      placeholder_name: "اسمكِ الكريم",
+      label_phone: "رقم الجوال",
+      placeholder_phone: "05xxxxxxxx",
+      label_city: "المدينة",
+      placeholder_city: "الرياض، جدة، الدمام...",
+      whatsapp_card_title: "تأكيد عبر واتساب",
+      whatsapp_card_body: "نتواصل معكِ لتأكيد التفاصيل وأوقات التوصيل خلال ساعة.",
+      send_via_whatsapp: "إرسال الطلب عبر واتساب",
+      whatsapp_intro: "مرحباً RACHÉL ✦",
+      whatsapp_confirm: "أودّ تأكيد الطلب التالي:",
+      whatsapp_total: "الإجمالي",
+      whatsapp_name: "الاسم",
+      whatsapp_phone: "الجوال",
+      whatsapp_city: "المدينة",
+    },
+  },
+  en: {
+    dir: "ltr" as const,
+    lang: "en",
+    nav: {
+      menu: "Open menu",
+      search: "Search",
+      search_label: "Search for your piece",
+      wishlist: "Wishlist",
+      cart: "Cart",
+      cart_count: (n: number) => `Cart: ${n} items`,
+      lang_label: "Switch language",
+    },
+    brand_reveal: {
+      maison: "MAISON · EST. 2026",
+      tag_l1: "Quiet luxury,",
+      tag_l2: "redefined.",
+      sectors: "Fashion · Fragrance · Beauty",
+    },
+    marquee: [
+      "Free shipping over SAR 500",
+      "Free returns within 14 days",
+      "Complimentary gift wrap",
+      "Up to 6 interest-free instalments",
+      "WhatsApp support 24/7",
+    ],
+    story: {
+      eyebrow: "Our story",
+      title_l1: "Elegance that",
+      title_l2: "creates itself",
+      body_p1: "At RACHÉL, we believe elegance is not loud. It's a quiet choice, a fabric that knows your body, a story that doesn't need to be told. Every piece is selected from artisans we know by name, visit, and believe in.",
+      body_p2: "We don't make fashion that fades in six months. We build a wardrobe that lasts.",
+      cta: "Read our full story",
+    },
+    product_grid: {
+      filter_all: "All",
+      filter_new: "New",
+      filter_bestseller: "Bestseller",
+      filter_sale: "Sale",
+      sort_featured: "Featured",
+      sort_new: "Newest",
+      sort_price_low: "Price: Low to High",
+      sort_price_high: "Price: High to Low",
+      sort_label: "Sort:",
+      count_unit: (n: number) => `${n} items`,
+      slide_label: (n: number) => `Slide ${n}`,
+      prev: "Previous",
+      next: "Next",
+    },
+    sections: {
+      new_title: "New this week",
+      new_sub: "Just arrived — from fashion to fragrance, an unrepeatable selection.",
+      bestsellers_title: "Most loved",
+      bestsellers_sub: "Pieces our community loved before you did.",
+      perfumes_title: "Oud & Promise",
+      perfumes_sub: "Cambodian oud, white musk, Taif rose. A scent that stays.",
+      beauty_title: "Natural beauty",
+      beauty_sub: "Oils, shea butter, authentic Indian recipes.",
+    },
+    footer: {
+      shop_title: "Shop",
+      shop_links: ["New this week", "Dresses", "Coats", "Bags", "Accessories", "Sale"],
+      service_title: "Customer service",
+      service_links: ["Contact us", "Size guide", "Shipping & returns", "FAQ", "Track your order"],
+      brand_title: "RACHÉL",
+      brand_links: ["Our story", "Fashion journal", "Press", "Careers", "Membership"],
+      tagline: "Refined women's fashion, footwear, hair tools, beauty and fragrance — curated with care.",
+      newsletter_placeholder: "Subscribe to our newsletter",
+      subscribe: "Subscribe",
+      welcome_msg: "Welcome to the RACHÉL family",
+      invalid_email: "Please enter a valid email",
+      copyright: "© 2026 RACHÉL. All rights reserved.",
+      privacy: "Privacy policy",
+      terms: "Terms & conditions",
+      legal: "Legal notice",
+      ig: "Instagram",
+      tt: "TikTok",
+      wa: "WhatsApp",
+    },
+    side_menu: {
+      close: "Close",
+      search_placeholder: "Search for a piece or category...",
+      new_this_week: "✨ New this week",
+      sale_quick: "🎁 Sale",
+      contact_us: "Contact us",
+      whatsapp_label: "WhatsApp — 050 000 0000",
+    },
+    product: {
+      badge_new: "New",
+      badge_sale: "Sale",
+      badge_bestseller: "Bestseller",
+      badge_limited: "Limited",
+      sold_out: "Sold out",
+      quick_add: "Quick add",
+      only_n_left: (n: number) => `Only ${n} left`,
+      added_to_cart: (name: string) => `"${name}" added to cart`,
+      currency: "SAR",
+    },
+    quick_view: {
+      size: "Size",
+      color: "Colour",
+      qty: "Quantity",
+      add_to_cart: "Add to cart",
+      add_to_wishlist: "Add to wishlist",
+      free_shipping_over: "Free shipping over SAR 500",
+      free_returns_14d: "Free returns within 14 days",
+      size_guide: "Size guide",
+      pick_size_first: "Please select a size first",
+      close: "Close",
+      image_n: (n: number) => `Image ${n}`,
+      limited_edition: "Limited edition",
+      limited_left: (n: number) => `Only ${n} left — limited edition`,
+      new_tag: "New",
+    },
+    cart: {
+      title: "Your bag",
+      checkout_title: "Order confirmation",
+      count_unit: (n: number) => `${n} ${n === 1 ? "item" : "items"}`,
+      close: "Close",
+      empty_title: "Your bag is empty",
+      empty_sub: "Discover our edit and add pieces that feel like you.",
+      empty_cta: "Start shopping",
+      ship_progress: (left: number) =>
+        `Add ${left.toLocaleString("en-US")} SAR more for free shipping`,
+      ship_unlocked: "✓ You've unlocked free shipping",
+      size_prefix: "Size",
+      qty_minus: "Decrease",
+      qty_plus: "Increase",
+      remove: "Remove",
+      subtotal: "Subtotal",
+      shipping: "Shipping",
+      free: "Free",
+      ship_pending: "Calculated next",
+      total: "Total",
+      checkout: "Checkout",
+      empty_cart: "Empty bag",
+      back_to_cart: "Back to bag",
+      label_name: "Full name",
+      placeholder_name: "Your full name",
+      label_phone: "Phone number",
+      placeholder_phone: "05xxxxxxxx",
+      label_city: "City",
+      placeholder_city: "Riyadh, Jeddah, Dammam...",
+      whatsapp_card_title: "Confirm via WhatsApp",
+      whatsapp_card_body: "We'll reach out to confirm details and delivery times within the hour.",
+      send_via_whatsapp: "Send order via WhatsApp",
+      whatsapp_intro: "Hello RACHÉL ✦",
+      whatsapp_confirm: "I'd like to confirm the following order:",
+      whatsapp_total: "Total",
+      whatsapp_name: "Name",
+      whatsapp_phone: "Phone",
+      whatsapp_city: "City",
+    },
+  },
+  fr: {
+    dir: "ltr" as const,
+    lang: "fr",
+    nav: {
+      menu: "Ouvrir le menu",
+      search: "Rechercher",
+      search_label: "Rechercher votre pièce",
+      wishlist: "Favoris",
+      cart: "Panier",
+      cart_count: (n: number) => `Panier : ${n} article${n > 1 ? "s" : ""}`,
+      lang_label: "Changer de langue",
+    },
+    brand_reveal: {
+      maison: "MAISON · EST. 2026",
+      tag_l1: "Luxe discret,",
+      tag_l2: "réinventé.",
+      sectors: "Mode · Parfum · Beauté",
+    },
+    marquee: [
+      "Livraison offerte dès 500 SAR",
+      "Retours gratuits sous 14 jours",
+      "Emballage cadeau offert",
+      "Paiement en 6 fois sans frais",
+      "Service WhatsApp 24/7",
+    ],
+    story: {
+      eyebrow: "Notre histoire",
+      title_l1: "Une élégance",
+      title_l2: "qui se crée seule",
+      body_p1: "Chez RACHÉL, nous croyons que l'élégance n'est jamais bruyante. C'est un choix tranquille, une matière qui connaît votre corps, une histoire qui n'a pas besoin d'être racontée. Chaque pièce est choisie chez des artisans que nous connaissons par leur nom, que nous visitons, et dans le travail desquels nous croyons.",
+      body_p2: "Nous ne faisons pas de mode qui s'efface en six mois. Nous construisons un vestiaire qui dure.",
+      cta: "Lire notre histoire complète",
+    },
+    product_grid: {
+      filter_all: "Tout",
+      filter_new: "Nouveau",
+      filter_bestseller: "Meilleures ventes",
+      filter_sale: "Soldes",
+      sort_featured: "En vedette",
+      sort_new: "Plus récents",
+      sort_price_low: "Prix : croissant",
+      sort_price_high: "Prix : décroissant",
+      sort_label: "Trier :",
+      count_unit: (n: number) => `${n} article${n > 1 ? "s" : ""}`,
+      slide_label: (n: number) => `Diapositive ${n}`,
+      prev: "Précédent",
+      next: "Suivant",
+    },
+    sections: {
+      new_title: "Nouveautés de la semaine",
+      new_sub: "Tout juste arrivés — de la mode aux parfums, une sélection unique.",
+      bestsellers_title: "Les plus aimés",
+      bestsellers_sub: "Des pièces que notre communauté a adorées avant vous.",
+      perfumes_title: "Oud & Promesses",
+      perfumes_sub: "Oud cambodgien, musc blanc, rose de Taïf. Un sillage qui demeure.",
+      beauty_title: "Beauté naturelle",
+      beauty_sub: "Huiles, beurre de karité, recettes indiennes authentiques.",
+    },
+    footer: {
+      shop_title: "Boutique",
+      shop_links: ["Nouveautés", "Robes", "Manteaux", "Sacs", "Accessoires", "Soldes"],
+      service_title: "Service client",
+      service_links: ["Nous contacter", "Guide des tailles", "Livraison & retours", "FAQ", "Suivre ma commande"],
+      brand_title: "RACHÉL",
+      brand_links: ["Notre histoire", "Journal mode", "Presse", "Carrières", "Programme de fidélité"],
+      tagline: "Mode féminine raffinée, chaussures, outils capillaires, beauté et parfums — sélectionnés avec soin.",
+      newsletter_placeholder: "Inscrivez-vous à notre newsletter",
+      subscribe: "S'inscrire",
+      welcome_msg: "Bienvenue dans la famille RACHÉL",
+      invalid_email: "Veuillez entrer un email valide",
+      copyright: "© 2026 RACHÉL. Tous droits réservés.",
+      privacy: "Politique de confidentialité",
+      terms: "Conditions générales",
+      legal: "Mentions légales",
+      ig: "Instagram",
+      tt: "TikTok",
+      wa: "WhatsApp",
+    },
+    side_menu: {
+      close: "Fermer",
+      search_placeholder: "Rechercher une pièce ou catégorie...",
+      new_this_week: "✨ Nouveautés de la semaine",
+      sale_quick: "🎁 Soldes",
+      contact_us: "Nous contacter",
+      whatsapp_label: "WhatsApp — 050 000 0000",
+    },
+    product: {
+      badge_new: "Nouveau",
+      badge_sale: "Soldé",
+      badge_bestseller: "Best-seller",
+      badge_limited: "Limité",
+      sold_out: "Épuisé",
+      quick_add: "Ajout rapide",
+      only_n_left: (n: number) => `Plus que ${n} en stock`,
+      added_to_cart: (name: string) => `« ${name} » ajouté au panier`,
+      currency: "SAR",
+    },
+    quick_view: {
+      size: "Taille",
+      color: "Couleur",
+      qty: "Quantité",
+      add_to_cart: "Ajouter au panier",
+      add_to_wishlist: "Ajouter aux favoris",
+      free_shipping_over: "Livraison offerte dès 500 SAR",
+      free_returns_14d: "Retours gratuits sous 14 jours",
+      size_guide: "Guide des tailles",
+      pick_size_first: "Veuillez sélectionner une taille",
+      close: "Fermer",
+      image_n: (n: number) => `Image ${n}`,
+      limited_edition: "Édition limitée",
+      limited_left: (n: number) => `Plus que ${n} en stock — édition limitée`,
+      new_tag: "Nouveau",
+    },
+    cart: {
+      title: "Votre panier",
+      checkout_title: "Confirmation de commande",
+      count_unit: (n: number) => `${n} article${n > 1 ? "s" : ""}`,
+      close: "Fermer",
+      empty_title: "Votre panier est vide",
+      empty_sub: "Découvrez notre sélection et ajoutez les pièces qui vous ressemblent.",
+      empty_cta: "Commencer mes achats",
+      ship_progress: (left: number) =>
+        `Ajoutez ${left.toLocaleString("fr-FR")} SAR pour bénéficier de la livraison offerte`,
+      ship_unlocked: "✓ La livraison est offerte",
+      size_prefix: "Taille",
+      qty_minus: "Diminuer",
+      qty_plus: "Augmenter",
+      remove: "Supprimer",
+      subtotal: "Sous-total",
+      shipping: "Livraison",
+      free: "Offerte",
+      ship_pending: "Calculée ensuite",
+      total: "Total",
+      checkout: "Passer la commande",
+      empty_cart: "Vider le panier",
+      back_to_cart: "Retour au panier",
+      label_name: "Nom complet",
+      placeholder_name: "Votre nom complet",
+      label_phone: "Numéro de téléphone",
+      placeholder_phone: "05xxxxxxxx",
+      label_city: "Ville",
+      placeholder_city: "Riyad, Djeddah, Dammam...",
+      whatsapp_card_title: "Confirmer via WhatsApp",
+      whatsapp_card_body: "Nous vous contactons sous une heure pour confirmer les détails et la livraison.",
+      send_via_whatsapp: "Envoyer la commande via WhatsApp",
+      whatsapp_intro: "Bonjour RACHÉL ✦",
+      whatsapp_confirm: "Je souhaite confirmer la commande suivante :",
+      whatsapp_total: "Total",
+      whatsapp_name: "Nom",
+      whatsapp_phone: "Téléphone",
+      whatsapp_city: "Ville",
+    },
+  },
+} as const;
+
+export type Dict = (typeof dictionaries)["ar"];
+
+type LocaleContextValue = {
+  locale: Locale;
+  setLocale: (l: Locale) => void;
+  d: Dict;
+};
+
+const LocaleContext = createContext<LocaleContextValue | null>(null);
+
+export function LocaleProvider({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const [locale, setLocaleState] = useState<Locale>("ar");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY) as Locale | null;
+      if (saved && (LOCALES as readonly string[]).includes(saved)) {
+        setLocaleState(saved);
+      }
+    } catch {}
+  }, []);
+
+  const setLocale = (l: Locale) => {
+    setLocaleState(l);
+    try {
+      localStorage.setItem(STORAGE_KEY, l);
+    } catch {}
+  };
+
+  const value = useMemo<LocaleContextValue>(
+    () => ({ locale, setLocale, d: dictionaries[locale] as Dict }),
+    [locale],
+  );
+
+  const dir = dictionaries[locale].dir;
+  const lang = dictionaries[locale].lang;
+
+  return (
+    <LocaleContext.Provider value={value}>
+      <div dir={dir} lang={lang} className={className} suppressHydrationWarning>
+        {children}
+      </div>
+    </LocaleContext.Provider>
+  );
+}
+
+export function useLocale(): LocaleContextValue {
+  const ctx = useContext(LocaleContext);
+  if (!ctx) throw new Error("useLocale must be used within LocaleProvider");
+  return ctx;
+}
+
+export type LocalizedField = { ar: string; en?: string; fr?: string };
+
+export function pick(field: LocalizedField, locale: Locale): string {
+  return field[locale] || field.en || field.ar;
+}
