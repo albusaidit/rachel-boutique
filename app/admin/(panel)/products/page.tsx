@@ -1,8 +1,13 @@
 import { Suspense } from "react";
-import { products, categoryTree } from "@/app/(storefront)/_lib/products";
+import { listProducts } from "@/app/_lib/db/products-repo";
+import { isDbConfigured } from "@/app/_lib/db/client";
+import { categoryTree } from "@/app/(storefront)/_lib/products";
 import { ProductsTable } from "../../_components/ProductsTable";
 
-export default function AdminProductsPage() {
+export default async function AdminProductsPage() {
+  const products = await listProducts();
+  const dbReady = isDbConfigured();
+
   const rows = products.map((p) => ({
     id: p.id,
     slug: p.slug,
@@ -24,7 +29,7 @@ export default function AdminProductsPage() {
 
   return (
     <Suspense fallback={null}>
-      <ProductsTable rows={rows} categories={categories} />
+      <ProductsTable rows={rows} categories={categories} dbReady={dbReady} />
     </Suspense>
   );
 }

@@ -1,7 +1,10 @@
-import { products, categoryTree } from "@/app/(storefront)/_lib/products";
+import { listProducts } from "@/app/_lib/db/products-repo";
+import { isDbConfigured } from "@/app/_lib/db/client";
+import { categoryTree } from "@/app/(storefront)/_lib/products";
 import { InventoryView } from "../../_components/InventoryView";
 
-export default function AdminInventoryPage() {
+export default async function AdminInventoryPage() {
+  const products = await listProducts();
   const rows = products.map((p) => ({
     id: p.id,
     name: p.name,
@@ -17,5 +20,5 @@ export default function AdminInventoryPage() {
     en: c.en,
     fr: c.fr,
   }));
-  return <InventoryView rows={rows} categories={categories} />;
+  return <InventoryView rows={rows} categories={categories} dbReady={isDbConfigured()} />;
 }

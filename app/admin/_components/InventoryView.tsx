@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useTransition } from "react";
+import { adjustStockAction } from "@/app/_lib/db/actions";
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { DemoBanner, PageHeader } from "./PageHeader";
 
@@ -44,7 +46,47 @@ function Card({
   );
 }
 
-export function InventoryView({ rows, categories }: { rows: Row[]; categories: Cat[] }) {
+function RestockButton({
+  id,
+  amount,
+  label,
+  dbReady,
+  commingSoon,
+}: {
+  id: string;
+  amount: number;
+  label: string;
+  dbReady: boolean;
+  commingSoon: string;
+}) {
+  const [pending, start] = useTransition();
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        if (!dbReady) return;
+        start(async () => {
+          await adjustStockAction(id, amount);
+        });
+      }}
+      disabled={!dbReady || pending}
+      title={!dbReady ? commingSoon : undefined}
+      className="text-xs px-3 py-1.5 border border-[var(--a-line)] text-[var(--a-ink-muted)] hover:text-[var(--a-ink)] hover:border-[var(--a-ink-faint)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {pending ? "…" : label}
+    </button>
+  );
+}
+
+export function InventoryView({
+  rows,
+  categories,
+  dbReady = false,
+}: {
+  rows: Row[];
+  categories: Cat[];
+  dbReady?: boolean;
+}) {
   const { d, locale } = useAdminLocale();
   const numLocale = locale === "ar" ? "ar-SA" : locale === "fr" ? "fr-FR" : "en-US";
   const catLabels = Object.fromEntries(categories.map((c) => [c.key, c[locale] || c.en]));
@@ -62,11 +104,13 @@ export function InventoryView({ rows, categories }: { rows: Row[]; categories: C
     items,
     emptyText,
     tone,
+    restockAmount,
   }: {
     title: string;
     items: Row[];
     emptyText: string;
     tone: "danger" | "warning";
+    restockAmount: number;
   }) => {
     const cls = tone === "danger" ? "var(--a-danger)" : "var(--a-warning)";
     return (
@@ -108,13 +152,13 @@ export function InventoryView({ rows, categories }: { rows: Row[]; categories: C
                     SAR {r.price.toLocaleString(numLocale)}
                   </div>
                 </div>
-                <button
-                  disabled
-                  title={d.common.coming_soon}
-                  className="text-xs px-3 py-1.5 border border-[var(--a-line)] text-[var(--a-ink-muted)] hover:text-[var(--a-ink)] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {d.inventory.restock}
-                </button>
+                <RestockButton
+                  id={r.id}
+                  amount={restockAmount}
+                  label={`+${restockAmount} ${d.inventory.restock}`}
+                  dbReady={dbReady}
+                  commingSoon={d.common.coming_soon}
+                />
               </li>
             ))}
           </ul>
@@ -127,7 +171,7 @@ export function InventoryView({ rows, categories }: { rows: Row[]; categories: C
     <>
       <PageHeader title={d.inventory.title} subtitle={d.inventory.subtitle} />
       <div className="px-8 py-6 space-y-6">
-        <DemoBanner>{d.common.demo_banner}</DemoBanner>
+        {!dbReady && <DemoBanner>{d.common.demo_banner}</DemoBanner>}
 
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card title={d.inventory.out} count={out.length} tone="danger" />
@@ -153,12 +197,14 @@ export function InventoryView({ rows, categories }: { rows: Row[]; categories: C
           items={out}
           emptyText={d.inventory.none_out}
           tone="danger"
+          restockAmount={10}
         />
         <Section
           title={d.inventory.low}
           items={low}
           emptyText={d.inventory.none_low}
           tone="warning"
+          restockAmount={10}
         />
       </div>
     </>

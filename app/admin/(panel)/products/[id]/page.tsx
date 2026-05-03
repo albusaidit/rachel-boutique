@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
-import { findProduct, categoryTree } from "@/app/(storefront)/_lib/products";
+import { findProductRepo } from "@/app/_lib/db/products-repo";
+import { isDbConfigured } from "@/app/_lib/db/client";
+import { categoryTree } from "@/app/(storefront)/_lib/products";
 import { ProductDetail } from "../../../_components/ProductDetail";
 
 export default async function AdminProductDetailPage({
@@ -8,7 +10,7 @@ export default async function AdminProductDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const product = findProduct(id);
+  const product = await findProductRepo(id);
   if (!product) notFound();
 
   const categories = categoryTree.map((c) => ({
@@ -35,6 +37,7 @@ export default async function AdminProductDetailPage({
         tags: product.tags,
       }}
       categories={categories}
+      dbReady={isDbConfigured()}
     />
   );
 }

@@ -1,7 +1,10 @@
-import { products, categoryTree } from "@/app/(storefront)/_lib/products";
+import { categoryTree } from "@/app/(storefront)/_lib/products";
+import { listProducts } from "@/app/_lib/db/products-repo";
+import { isDbConfigured } from "@/app/_lib/db/client";
 import { Dashboard } from "../_components/Dashboard";
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  const products = await listProducts();
   const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
   const outOfStock = products.filter((p) => p.stock === 0).length;
   const lowStock = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
@@ -30,7 +33,6 @@ export default function AdminDashboardPage() {
       stock: p.stock,
     }));
 
-  // Deterministic mock revenue: 30-day series seeded by product list size
   const seed = products.length * 137;
   const revenue = Array.from({ length: 30 }, (_, i) => {
     const x = (Math.sin((seed + i) * 1.7) + 1) / 2;
@@ -39,7 +41,6 @@ export default function AdminDashboardPage() {
     return Math.round(8000 + x * 6500 * trend * dow);
   });
 
-  // Activity feed mock data
   const activity = [
     ...products
       .filter((p) => p.tags.includes("new"))
@@ -74,6 +75,7 @@ export default function AdminDashboardPage() {
       topProducts={topProducts}
       revenue={revenue}
       activity={activity}
+      dbReady={isDbConfigured()}
     />
   );
 }

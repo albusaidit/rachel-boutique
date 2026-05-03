@@ -86,7 +86,15 @@ function exportCsv(rows: Row[], cats: Cat[], locale: "ar" | "en" | "fr") {
   URL.revokeObjectURL(url);
 }
 
-export function ProductsTable({ rows, categories }: { rows: Row[]; categories: Cat[] }) {
+export function ProductsTable({
+  rows,
+  categories,
+  dbReady = false,
+}: {
+  rows: Row[];
+  categories: Cat[];
+  dbReady?: boolean;
+}) {
   const { d, locale } = useAdminLocale();
   const params = useSearchParams();
   const [query, setQuery] = useState("");
@@ -200,7 +208,7 @@ export function ProductsTable({ rows, categories }: { rows: Row[]; categories: C
         }
       />
       <div className="px-8 py-6 space-y-5">
-        <DemoBanner>{d.common.demo_banner}</DemoBanner>
+        {!dbReady && <DemoBanner>{d.common.demo_banner}</DemoBanner>}
 
         <div className="bg-[var(--a-surface)] border border-[var(--a-line)]">
           <div className="px-4 py-3 border-b border-[var(--a-line)] flex flex-wrap items-center gap-3">

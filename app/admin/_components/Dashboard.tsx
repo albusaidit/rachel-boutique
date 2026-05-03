@@ -77,6 +77,7 @@ export function Dashboard({
   topProducts,
   revenue,
   activity,
+  dbReady = false,
 }: {
   stats: {
     productsCount: number;
@@ -91,6 +92,7 @@ export function Dashboard({
   topProducts: TopProduct[];
   revenue: number[];
   activity: ActivityItem[];
+  dbReady?: boolean;
 }) {
   const { d, locale } = useAdminLocale();
   const total30d = revenue.reduce((s, v) => s + v, 0);
@@ -112,7 +114,7 @@ export function Dashboard({
     <>
       <PageHeader title={d.dashboard.title} subtitle={d.dashboard.subtitle} />
       <div className="px-8 py-6 space-y-6">
-        <DemoBanner>{d.common.demo_banner}</DemoBanner>
+        {!dbReady && <DemoBanner>{d.common.demo_banner}</DemoBanner>}
 
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat
