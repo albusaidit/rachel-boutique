@@ -1,10 +1,11 @@
 import { categoryTree } from "@/app/(storefront)/_lib/products";
 import { listProducts } from "@/app/_lib/db/products-repo";
 import { isDbConfigured } from "@/app/_lib/db/client";
+import { getSetupStatus } from "@/app/_lib/db/setup-status";
 import { Dashboard } from "../_components/Dashboard";
 
 export default async function AdminDashboardPage() {
-  const products = await listProducts();
+  const [products, setupStatus] = await Promise.all([listProducts(), getSetupStatus()]);
   const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
   const outOfStock = products.filter((p) => p.stock === 0).length;
   const lowStock = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
@@ -76,6 +77,7 @@ export default async function AdminDashboardPage() {
       revenue={revenue}
       activity={activity}
       dbReady={isDbConfigured()}
+      setupStatus={setupStatus}
     />
   );
 }

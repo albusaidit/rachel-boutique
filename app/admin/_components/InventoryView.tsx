@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useTransition } from "react";
 import { adjustStockAction } from "@/app/_lib/db/actions";
 import { useAdminLocale } from "../_lib/i18n-admin";
+import { useAdminToast } from "./AdminToast";
 import { DemoBanner, PageHeader } from "./PageHeader";
 
 type Row = {
@@ -60,13 +61,19 @@ function RestockButton({
   commingSoon: string;
 }) {
   const [pending, start] = useTransition();
+  const { push } = useAdminToast();
   return (
     <button
       onClick={(e) => {
         e.preventDefault();
         if (!dbReady) return;
         start(async () => {
-          await adjustStockAction(id, amount);
+          try {
+            await adjustStockAction(id, amount);
+            push(`+${amount} stock added`, "success");
+          } catch (err) {
+            push(err instanceof Error ? err.message : "Restock failed", "error");
+          }
         });
       }}
       disabled={!dbReady || pending}

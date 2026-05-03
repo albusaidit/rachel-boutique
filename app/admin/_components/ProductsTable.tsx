@@ -22,7 +22,8 @@ type Row = {
 type Cat = { key: string; ar: string; en: string; fr: string };
 
 type FilterKey = "all" | "new" | "sale" | "bestseller" | "limited" | "out";
-type SortKey = "name" | "priceLow" | "priceHigh" | "stock";
+type SortField = "name" | "category" | "price" | "stock";
+type SortDir = "asc" | "desc";
 
 function StockPill({
   stock,
@@ -99,8 +100,18 @@ export function ProductsTable({
   const params = useSearchParams();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
-  const [sort, setSort] = useState<SortKey>("name");
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const onSortClick = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  };
 
   useEffect(() => {
     if (params.get("export") === "1") {
@@ -134,12 +145,23 @@ export function ProductsTable({
       );
     }
     const sorted = [...r];
-    if (sort === "priceLow") sorted.sort((a, b) => a.price - b.price);
-    else if (sort === "priceHigh") sorted.sort((a, b) => b.price - a.price);
-    else if (sort === "stock") sorted.sort((a, b) => a.stock - b.stock);
-    else sorted.sort((a, b) => pickName(a.name).localeCompare(pickName(b.name)));
+    const factor = sortDir === "asc" ? 1 : -1;
+    sorted.sort((a, b) => {
+      switch (sortField) {
+        case "price":
+          return (a.price - b.price) * factor;
+        case "stock":
+          return (a.stock - b.stock) * factor;
+        case "category":
+          return (catLabels[a.category] ?? a.category)
+            .localeCompare(catLabels[b.category] ?? b.category) * factor;
+        case "name":
+        default:
+          return pickName(a.name).localeCompare(pickName(b.name)) * factor;
+      }
+    });
     return sorted;
-  }, [rows, query, filter, sort, locale]);
+  }, [rows, query, filter, sortField, sortDir, locale, catLabels]);
 
   const allSelected = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
   const someSelected = !allSelected && filtered.some((p) => selected.has(p.id));
@@ -170,13 +192,6 @@ export function ProductsTable({
     { key: "bestseller", label: d.products.filter_bestseller },
     { key: "limited", label: d.products.filter_limited },
     { key: "out", label: d.products.filter_out },
-  ];
-
-  const sorts: { key: SortKey; label: string }[] = [
-    { key: "name", label: d.products.sort_name },
-    { key: "priceLow", label: d.products.sort_price_low },
-    { key: "priceHigh", label: d.products.sort_price_high },
-    { key: "stock", label: d.products.sort_stock },
   ];
 
   return (
@@ -241,17 +256,6 @@ export function ProductsTable({
               ))}
             </div>
 
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              className="h-9 px-3 bg-[var(--a-surface)] border border-[var(--a-line)] text-xs tracking-[0.15em] uppercase text-[var(--a-ink-soft)]"
-            >
-              {sorts.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {d.products.sort_label} {s.label}
-                </option>
-              ))}
-            </select>
           </div>
 
           {selected.size > 0 && (
@@ -283,7 +287,7 @@ export function ProductsTable({
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[800px]">
-              <thead className="bg-[var(--a-line-soft)] text-[10px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)]">
+              <thead className="bg-[var(--a-line-soft)] text-[10px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] sticky top-14 z-10">
                 <tr>
                   <th className="px-4 py-3 w-10 text-start">
                     <input
@@ -297,10 +301,10 @@ export function ProductsTable({
                     />
                   </th>
                   <th className="text-start font-medium px-4 py-3 w-14"></th>
-                  <th className="text-start font-medium px-4 py-3">{d.products.col_product}</th>
-                  <th className="text-start font-medium px-4 py-3">{d.products.col_category}</th>
-                  <th className="text-end font-medium px-4 py-3">{d.products.col_price}</th>
-                  <th className="text-end font-medium px-4 py-3">{d.products.col_stock}</th>
+                  <SortableTh field="name" label={d.products.col_product} sortField={sortField} sortDir={sortDir} onClick={onSortClick} />
+                  <SortableTh field="category" label={d.products.col_category} sortField={sortField} sortDir={sortDir} onClick={onSortClick} />
+                  <SortableTh field="price" label={d.products.col_price} sortField={sortField} sortDir={sortDir} onClick={onSortClick} align="end" />
+                  <SortableTh field="stock" label={d.products.col_stock} sortField={sortField} sortDir={sortDir} onClick={onSortClick} align="end" />
                   <th className="text-start font-medium px-4 py-3 w-28">{d.products.col_status}</th>
                   <th className="px-4 py-3 w-24"></th>
                 </tr>
@@ -366,5 +370,39 @@ export function ProductsTable({
         </div>
       </div>
     </>
+  );
+}
+
+function SortableTh({
+  field,
+  label,
+  sortField,
+  sortDir,
+  onClick,
+  align = "start",
+}: {
+  field: SortField;
+  label: string;
+  sortField: SortField;
+  sortDir: SortDir;
+  onClick: (f: SortField) => void;
+  align?: "start" | "end";
+}) {
+  const active = sortField === field;
+  return (
+    <th className={`text-${align} font-medium px-0 py-0`}>
+      <button
+        type="button"
+        onClick={() => onClick(field)}
+        className={`w-full px-4 py-3 flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase transition-colors hover:text-[var(--a-ink)] ${
+          align === "end" ? "justify-end" : "justify-start"
+        } ${active ? "text-[var(--a-ink)]" : "text-[var(--a-ink-muted)]"}`}
+      >
+        <span>{label}</span>
+        <span aria-hidden className="text-[8px] leading-none">
+          {active ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
+        </span>
+      </button>
+    </th>
   );
 }

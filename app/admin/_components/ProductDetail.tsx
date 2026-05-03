@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useFormStatus } from "react-dom";
+import { useTransition } from "react";
 import { updateProductAction } from "@/app/_lib/db/actions";
 import { useAdminLocale } from "../_lib/i18n-admin";
+import { useAdminToast } from "./AdminToast";
 import { DemoBanner, PageHeader } from "./PageHeader";
 
 type Product = {
@@ -34,15 +35,30 @@ export function ProductDetail({
   dbReady?: boolean;
 }) {
   const { d, locale } = useAdminLocale();
+  const { push } = useAdminToast();
+  const [pending, start] = useTransition();
   const catLabel =
     categories.find((c) => c.key === product.category)?.[locale] ||
     categories.find((c) => c.key === product.category)?.en ||
     product.category;
   const productName = product.name[locale] || product.name.en;
-  const action = dbReady ? updateProductAction.bind(null, product.id) : undefined;
+
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!dbReady) return;
+    const formData = new FormData(e.currentTarget);
+    start(async () => {
+      try {
+        await updateProductAction(product.id, formData);
+        push("Saved", "success");
+      } catch (err) {
+        push(err instanceof Error ? err.message : "Save failed", "error");
+      }
+    });
+  };
 
   return (
-    <form action={action}>
+    <form onSubmit={onSubmit}>
       <PageHeader
         title={productName}
         subtitle={`${product.id} · ${catLabel}`}
@@ -54,7 +70,14 @@ export function ProductDetail({
             >
               ← {d.product_detail.back}
             </Link>
-            <SaveButton dbReady={dbReady} label={d.product_detail.save} commingSoon={d.common.coming_soon} />
+            <button
+              type="submit"
+              disabled={!dbReady || pending}
+              title={!dbReady ? d.common.coming_soon : undefined}
+              className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2 text-xs tracking-[0.2em] uppercase font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {pending ? "…" : d.product_detail.save}
+            </button>
           </>
         }
       />
@@ -157,27 +180,6 @@ export function ProductDetail({
   );
 }
 
-function SaveButton({
-  dbReady,
-  label,
-  commingSoon,
-}: {
-  dbReady: boolean;
-  label: string;
-  commingSoon: string;
-}) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={!dbReady || pending}
-      title={!dbReady ? commingSoon : undefined}
-      className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2 text-xs tracking-[0.2em] uppercase font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-    >
-      {pending ? "…" : label}
-    </button>
-  );
-}
 
 function Section({
   title,

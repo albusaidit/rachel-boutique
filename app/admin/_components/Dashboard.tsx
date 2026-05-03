@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { DemoBanner, PageHeader } from "./PageHeader";
 import { AreaSparkline } from "./AreaSparkline";
+import { SetupChecklist, type SetupStatus } from "./SetupChecklist";
 
 type CategoryStat = {
   key: string;
@@ -78,6 +79,7 @@ export function Dashboard({
   revenue,
   activity,
   dbReady = false,
+  setupStatus,
 }: {
   stats: {
     productsCount: number;
@@ -93,6 +95,7 @@ export function Dashboard({
   revenue: number[];
   activity: ActivityItem[];
   dbReady?: boolean;
+  setupStatus?: SetupStatus;
 }) {
   const { d, locale } = useAdminLocale();
   const total30d = revenue.reduce((s, v) => s + v, 0);
@@ -115,6 +118,7 @@ export function Dashboard({
       <PageHeader title={d.dashboard.title} subtitle={d.dashboard.subtitle} />
       <div className="px-8 py-6 space-y-6">
         {!dbReady && <DemoBanner>{d.common.demo_banner}</DemoBanner>}
+        {setupStatus && <SetupChecklist status={setupStatus} />}
 
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat

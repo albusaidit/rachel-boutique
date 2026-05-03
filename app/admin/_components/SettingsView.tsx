@@ -1,9 +1,10 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
+import { useTransition } from "react";
 import { updateSettingsAction } from "@/app/_lib/db/actions";
 import type { SettingsMap } from "@/app/_lib/db/settings-repo";
 import { LOCALES, useAdminLocale, type Locale } from "../_lib/i18n-admin";
+import { useAdminToast } from "./AdminToast";
 import { DemoBanner, PageHeader } from "./PageHeader";
 
 const LOCALE_LABEL: Record<Locale, string> = { ar: "AR", en: "EN", fr: "FR" };
@@ -16,14 +17,37 @@ export function SettingsView({
   dbReady?: boolean;
 }) {
   const { d, locale, setLocale, theme, setTheme } = useAdminLocale();
+  const { push } = useAdminToast();
+  const [pending, start] = useTransition();
+
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!dbReady) return;
+    const formData = new FormData(e.currentTarget);
+    start(async () => {
+      try {
+        await updateSettingsAction(formData);
+        push("Settings saved", "success");
+      } catch (err) {
+        push(err instanceof Error ? err.message : "Save failed", "error");
+      }
+    });
+  };
 
   return (
-    <form action={dbReady ? updateSettingsAction : undefined}>
+    <form onSubmit={onSubmit}>
       <PageHeader
         title={d.settings.title}
         subtitle={d.settings.subtitle}
         actions={
-          <SaveButton dbReady={dbReady} label={d.product_detail.save} comingSoon={d.common.coming_soon} />
+          <button
+            type="submit"
+            disabled={!dbReady || pending}
+            title={!dbReady ? d.common.coming_soon : undefined}
+            className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2 text-xs tracking-[0.2em] uppercase font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {pending ? "…" : d.product_detail.save}
+          </button>
         }
       />
       <div className="px-8 py-6 space-y-5">
@@ -124,27 +148,6 @@ export function SettingsView({
   );
 }
 
-function SaveButton({
-  dbReady,
-  label,
-  comingSoon,
-}: {
-  dbReady: boolean;
-  label: string;
-  comingSoon: string;
-}) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={!dbReady || pending}
-      title={!dbReady ? comingSoon : undefined}
-      className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2 text-xs tracking-[0.2em] uppercase font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-    >
-      {pending ? "…" : label}
-    </button>
-  );
-}
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (

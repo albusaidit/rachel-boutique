@@ -7,7 +7,7 @@ import { MobileNav } from "./MobileNav";
 
 const LOCALE_LABEL: Record<Locale, string> = { ar: "AR", en: "EN", fr: "FR" };
 
-export function Topbar() {
+export function Topbar({ dbReady = false }: { dbReady?: boolean }) {
   const { d, locale, setLocale, theme, toggleTheme } = useAdminLocale();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -61,6 +61,23 @@ export function Topbar() {
           </button>
 
           <div className="flex-1" />
+
+          <div
+            title={dbReady ? "Connected to database" : "Demo mode — no database"}
+            className={`hidden sm:flex items-center gap-1.5 h-9 px-2.5 rounded border text-[10px] tracking-[0.2em] uppercase font-medium flex-shrink-0 ${
+              dbReady
+                ? "bg-[var(--a-success-bg)] border-[color:color-mix(in_srgb,var(--a-success)_30%,transparent)] text-[var(--a-success)]"
+                : "bg-[var(--a-warning-bg)] border-[var(--a-warning-line)] text-[var(--a-warning)]"
+            }`}
+          >
+            <span
+              aria-hidden
+              className={`w-1.5 h-1.5 rounded-full ${
+                dbReady ? "bg-[var(--a-success)]" : "bg-[var(--a-warning)]"
+              } ${dbReady ? "" : "animate-pulse"}`}
+            />
+            <span>{dbReady ? "Live" : "Demo"}</span>
+          </div>
 
           <div
             role="group"
