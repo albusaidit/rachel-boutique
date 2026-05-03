@@ -88,3 +88,23 @@ export async function deleteProductAction(id: string) {
   revalidatePath("/admin");
   revalidatePath("/");
 }
+
+export async function updateSettingsAction(formData: FormData) {
+  await ensureAuth();
+  ensureDb();
+  const { SETTINGS_KEYS } = await import("./settings-repo");
+  for (const key of SETTINGS_KEYS) {
+    const value = formData.get(key);
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    await getDb()
+      .insert(schema.settings)
+      .values({ key, value: trimmed })
+      .onConflictDoUpdate({
+        target: schema.settings.key,
+        set: { value: trimmed, updatedAt: new Date() },
+      });
+  }
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin");
+}

@@ -17,7 +17,13 @@ type Customer = {
   isNew: boolean;
 };
 
-export function CustomersTable({ customers }: { customers: Customer[] }) {
+export function CustomersTable({
+  customers,
+  dbReady = false,
+}: {
+  customers: Customer[];
+  dbReady?: boolean;
+}) {
   const { d, locale } = useAdminLocale();
   const [query, setQuery] = useState("");
   const numLocale = locale === "ar" ? "ar-SA" : locale === "fr" ? "fr-FR" : "en-US";
@@ -47,8 +53,19 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
     <>
       <PageHeader title={d.customers.title} subtitle={d.customers.subtitle} />
       <div className="px-8 py-6 space-y-5">
-        <DemoBanner>{d.common.demo_banner}</DemoBanner>
+        {!dbReady && <DemoBanner>{d.common.demo_banner}</DemoBanner>}
 
+        {dbReady && customers.length === 0 ? (
+          <div className="bg-[var(--a-surface)] border border-[var(--a-line)] py-20 text-center">
+            <div className="text-4xl text-[var(--a-ink-faint)] mb-4" aria-hidden>
+              ◔
+            </div>
+            <h2 className="text-base font-semibold mb-2">{d.customers.title}</h2>
+            <p className="text-sm text-[var(--a-ink-muted)] max-w-sm mx-auto">
+              {d.orders.empty_body}
+            </p>
+          </div>
+        ) : (
         <div className="bg-[var(--a-surface)] border border-[var(--a-line)]">
           <div className="px-4 py-3 border-b border-[var(--a-line)]">
             <div className="flex items-center gap-2 px-3 h-9 bg-[var(--a-surface-2)] border border-[var(--a-line)] rounded max-w-md">
@@ -127,6 +144,7 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
             </table>
           </div>
         </div>
+        )}
       </div>
     </>
   );
