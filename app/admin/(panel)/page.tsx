@@ -1,4 +1,4 @@
-import { products, categoryTree } from "@/app/boutique/_lib/products";
+import { products, categoryTree } from "@/app/(storefront)/_lib/products";
 import { Dashboard } from "../_components/Dashboard";
 
 export default function AdminDashboardPage() {

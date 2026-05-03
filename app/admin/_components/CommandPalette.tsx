@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { products } from "@/app/boutique/_lib/products";
+import { products } from "@/app/(storefront)/_lib/products";
 import { useAdminLocale } from "../_lib/i18n-admin";
 
 type Item = {
@@ -51,7 +51,7 @@ export function CommandPalette({
         group: "actions",
         label: d.palette.action_storefront,
         action: () => {
-          window.open("/boutique", "_blank");
+          window.open("/", "_blank");
         },
       },
       {

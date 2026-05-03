@@ -54,7 +54,7 @@ export function Sidebar() {
       </nav>
       <div className="border-t border-[var(--a-line)] px-3 py-3 space-y-1">
         <Link
-          href="/boutique"
+          href="/"
           target="_blank"
           className="flex items-center justify-between px-3 py-2 rounded text-xs text-[var(--a-ink-muted)] hover:bg-[var(--a-line-soft)] hover:text-[var(--a-ink)] transition-colors"
         >

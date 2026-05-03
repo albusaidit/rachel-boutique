@@ -44,7 +44,7 @@ export default function DesignsPage() {
         <a href="#d3">03 · Midnight Gold</a>
         <a href="#d4">04 · Minimal</a>
         <a href="#d5">05 · Heritage</a>
-        <a href="/boutique" style={{ marginInlineStart: 24, background: "#111", color: "#fff", borderColor: "#111" }}>
+        <a href="/" style={{ marginInlineStart: 24, background: "#111", color: "#fff", borderColor: "#111" }}>
           → Current site
         </a>
       </nav>

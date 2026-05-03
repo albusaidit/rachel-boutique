@@ -1,4 +1,4 @@
-import { products, categoryTree } from "@/app/boutique/_lib/products";
+import { products, categoryTree } from "@/app/(storefront)/_lib/products";
 import { InventoryView } from "../../_components/InventoryView";
 
 export default function AdminInventoryPage() {

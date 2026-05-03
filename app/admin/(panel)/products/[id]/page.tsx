@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { findProduct, categoryTree } from "@/app/boutique/_lib/products";
+import { findProduct, categoryTree } from "@/app/(storefront)/_lib/products";
 import { ProductDetail } from "../../../_components/ProductDetail";
 
 export default async function AdminProductDetailPage({

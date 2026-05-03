@@ -146,7 +146,7 @@ export function ProductDetail({
           </Section>
           <Section title={d.product_detail.storefront}>
             <Link
-              href={`/boutique#${product.id}`}
+              href={`/#${product.id}`}
               target="_blank"
               className="text-xs text-[var(--a-ink-muted)] hover:text-[var(--a-ink)] underline"
             >
