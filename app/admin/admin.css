@@ -1,0 +1,93 @@
+.admin-root {
+  --a-bg: #fafaf9;
+  --a-surface: #ffffff;
+  --a-surface-2: #f6f6f4;
+  --a-line: #e8e8e6;
+  --a-line-soft: #f1f0ee;
+  --a-ink: #0a0a0a;
+  --a-ink-soft: #2a2a2a;
+  --a-ink-muted: #6b6b6b;
+  --a-ink-faint: #a8a8a8;
+  --a-accent: #0a0a0a;
+  --a-accent-fg: #ffffff;
+  --a-success: #1e7a3a;
+  --a-success-bg: #eaf6ed;
+  --a-warning: #b86b2c;
+  --a-warning-bg: #fff8ed;
+  --a-warning-line: #f0d9a8;
+  --a-danger: #b13838;
+  --a-danger-bg: #fbecec;
+  --a-danger-line: #f1c4c4;
+  --a-info-bg: #eaf2fb;
+
+  background: var(--a-bg);
+  color: var(--a-ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+.admin-root[data-theme="dark"] {
+  --a-bg: #0c0c0d;
+  --a-surface: #131315;
+  --a-surface-2: #1b1b1e;
+  --a-line: #2a2a2e;
+  --a-line-soft: #1f1f22;
+  --a-ink: #f3f3f1;
+  --a-ink-soft: #d6d6d2;
+  --a-ink-muted: #9a9a96;
+  --a-ink-faint: #5e5e5b;
+  --a-accent: #f3f3f1;
+  --a-accent-fg: #0c0c0d;
+  --a-success: #5fbe7d;
+  --a-success-bg: rgba(95, 190, 125, 0.12);
+  --a-warning: #e0a960;
+  --a-warning-bg: rgba(224, 169, 96, 0.12);
+  --a-warning-line: rgba(224, 169, 96, 0.3);
+  --a-danger: #e57373;
+  --a-danger-bg: rgba(229, 115, 115, 0.12);
+  --a-danger-line: rgba(229, 115, 115, 0.3);
+  --a-info-bg: rgba(120, 160, 220, 0.1);
+
+  color-scheme: dark;
+}
+
+.admin-root *::selection {
+  background: var(--a-ink);
+  color: var(--a-accent-fg);
+}
+
+.admin-root input,
+.admin-root textarea,
+.admin-root select,
+.admin-root button {
+  font-family: inherit;
+  color: inherit;
+}
+
+.admin-root input::placeholder,
+.admin-root textarea::placeholder {
+  color: var(--a-ink-faint);
+}
+
+.admin-root .num {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-root .kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  padding: 2px 5px;
+  border: 1px solid var(--a-line);
+  border-radius: 3px;
+  background: var(--a-surface);
+  color: var(--a-ink-muted);
+}
+
+.admin-root .scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.admin-root .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--a-line);
+  border-radius: 3px;
+}
