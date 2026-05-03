@@ -1,12 +1,20 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { LOCALES, useAdminLocale, type Locale } from "../_lib/i18n-admin";
 
 const LOCALE_LABEL: Record<Locale, string> = { ar: "AR", en: "EN", fr: "FR" };
 
 export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
+  );
+}
+
+function LoginInner() {
   const router = useRouter();
   const params = useSearchParams();
   const { d, locale, setLocale, theme, toggleTheme } = useAdminLocale();

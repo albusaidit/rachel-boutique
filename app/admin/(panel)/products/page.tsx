@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { products, categoryTree } from "@/app/(storefront)/_lib/products";
 import { ProductsTable } from "../../_components/ProductsTable";
 
@@ -21,5 +22,9 @@ export default function AdminProductsPage() {
     fr: c.fr,
   }));
 
-  return <ProductsTable rows={rows} categories={categories} />;
+  return (
+    <Suspense fallback={null}>
+      <ProductsTable rows={rows} categories={categories} />
+    </Suspense>
+  );
 }
