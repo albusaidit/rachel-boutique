@@ -348,7 +348,7 @@ export function ProductsTable({
                         {catLabels[p.category]}
                       </td>
                       <td className="px-4 py-3 text-end num">
-                        <div className="font-medium">SAR {p.price.toLocaleString(numLocale)}</div>
+                        <div className="font-medium">MAD {p.price.toLocaleString(numLocale)}</div>
                         {typeof p.compareAt === "number" && (
                           <div className="text-xs text-[var(--a-ink-faint)] line-through">
                             {p.compareAt.toLocaleString(numLocale)}

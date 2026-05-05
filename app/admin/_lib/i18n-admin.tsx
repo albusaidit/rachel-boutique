@@ -74,7 +74,7 @@ const dict = {
       kpi_orders: "الطلبات",
       kpi_orders_hint: "لا تزال متصلة بواتساب",
       kpi_products: "المنتجات",
-      kpi_products_hint: (n: number) => `بقيمة مخزون ${n.toLocaleString("ar-SA")} ر.س`,
+      kpi_products_hint: (n: number) => `بقيمة مخزون ${n.toLocaleString("ar-SA")} د.م.`,
       kpi_alerts: "تنبيهات المخزون",
       kpi_alerts_hint: (out: number, low: number) =>
         `${out} نفدت · ${low} منخفضة`,
@@ -141,7 +141,7 @@ const dict = {
       desc_ar: "عربي",
       desc_fr: "فرنسي",
       pricing: "التسعير والمخزون",
-      price: "السعر (ر.س)",
+      price: "السعر (د.م.)",
       compare_at: "السعر قبل التخفيض",
       stock: "المخزون",
       sizes: "المقاسات",
@@ -315,7 +315,7 @@ const dict = {
       kpi_orders_hint: "Still routed via WhatsApp",
       kpi_products: "Products",
       kpi_products_hint: (n: number) =>
-        `${n.toLocaleString("en-US")} SAR inventory value`,
+        `${n.toLocaleString("en-US")} MAD inventory value`,
       kpi_alerts: "Stock alerts",
       kpi_alerts_hint: (out: number, low: number) => `${out} out · ${low} low`,
       revenue_title: "Daily revenue",
@@ -382,7 +382,7 @@ const dict = {
       desc_ar: "Arabic",
       desc_fr: "French",
       pricing: "Pricing & inventory",
-      price: "Price (SAR)",
+      price: "Price (MAD)",
       compare_at: "Compare at",
       stock: "Stock",
       sizes: "Sizes",
@@ -557,7 +557,7 @@ const dict = {
       kpi_orders_hint: "Toujours via WhatsApp",
       kpi_products: "Produits",
       kpi_products_hint: (n: number) =>
-        `Valeur de stock : ${n.toLocaleString("fr-FR")} SAR`,
+        `Valeur de stock : ${n.toLocaleString("fr-FR")} MAD`,
       kpi_alerts: "Alertes stock",
       kpi_alerts_hint: (out: number, low: number) =>
         `${out} épuisé · ${low} faible`,
@@ -625,7 +625,7 @@ const dict = {
       desc_ar: "Arabe",
       desc_fr: "Français",
       pricing: "Prix & stock",
-      price: "Prix (SAR)",
+      price: "Prix (MAD)",
       compare_at: "Prix avant remise",
       stock: "Stock",
       sizes: "Tailles",

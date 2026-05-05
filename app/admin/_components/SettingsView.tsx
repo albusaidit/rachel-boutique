@@ -118,7 +118,7 @@ export function SettingsView({
               label={d.settings.free_ship}
               value={settings.free_ship_threshold}
               editable={dbReady}
-              hint="SAR"
+              hint="MAD"
               inputMode="numeric"
             />
             <Field

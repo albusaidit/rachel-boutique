@@ -32,7 +32,7 @@ export const SETTINGS_DEFAULTS: SettingsMap = {
   tagline: "Quiet luxury, redefined.",
   default_locale: "ar",
   supported_locales: "ar · en · fr",
-  currency: "SAR",
+  currency: "MAD",
   free_ship_threshold: "500",
   returns_window: "14",
   whatsapp: "+966 50 000 0000",

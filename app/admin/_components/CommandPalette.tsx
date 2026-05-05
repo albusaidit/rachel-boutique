@@ -42,7 +42,7 @@ export function CommandPalette({
       id: `prod-${p.id}`,
       group: "products",
       label: p.name[locale] || p.name.en,
-      hint: `${p.id} · SAR ${p.price.toLocaleString("en-US")}`,
+      hint: `${p.id} · MAD ${p.price.toLocaleString("en-US")}`,
       action: () => router.push(`/admin/products/${p.id}`),
     }));
 

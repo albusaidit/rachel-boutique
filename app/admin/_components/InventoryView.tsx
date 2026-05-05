@@ -156,7 +156,7 @@ export function InventoryView({
                     {r.stock}
                   </div>
                   <div className="text-[11px] text-[var(--a-ink-muted)]">
-                    SAR {r.price.toLocaleString(numLocale)}
+                    MAD {r.price.toLocaleString(numLocale)}
                   </div>
                 </div>
                 <RestockButton

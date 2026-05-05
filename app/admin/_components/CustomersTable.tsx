@@ -134,7 +134,7 @@ export function CustomersTable({
                       </td>
                       <td className="px-4 py-3 text-end num font-medium">{c.orders}</td>
                       <td className="px-4 py-3 text-end num">
-                        SAR {c.spent.toLocaleString(numLocale)}
+                        MAD {c.spent.toLocaleString(numLocale)}
                       </td>
                       <td className="px-4 py-3 text-[var(--a-ink-muted)] num">{formatDate(c.sinceISO)}</td>
                     </tr>

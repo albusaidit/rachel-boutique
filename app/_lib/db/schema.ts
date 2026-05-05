@@ -22,7 +22,7 @@ export const products = pgTable(
     descFr: text("desc_fr"),
     price: integer("price").notNull(),
     compareAt: integer("compare_at"),
-    currency: text("currency").notNull().default("SAR"),
+    currency: text("currency").notNull().default("MAD"),
     sizes: jsonb("sizes").$type<string[]>().notNull(),
     colors: jsonb("colors").$type<{ name: string; hex: string }[]>().notNull(),
     images: jsonb("images").$type<string[]>().notNull(),
@@ -62,7 +62,7 @@ export const orders = pgTable("orders", {
     >()
     .notNull(),
   subtotal: integer("subtotal").notNull(),
-  currency: text("currency").notNull().default("SAR"),
+  currency: text("currency").notNull().default("MAD"),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

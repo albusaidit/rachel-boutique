@@ -100,7 +100,7 @@ export function Dashboard({
   const { d, locale } = useAdminLocale();
   const total30d = revenue.reduce((s, v) => s + v, 0);
   const numLocale = locale === "ar" ? "ar-SA" : locale === "fr" ? "fr-FR" : "en-US";
-  const currency = "SAR";
+  const currency = "MAD";
 
   const pickName = (n: { ar: string; en: string; fr?: string }) =>
     n[locale] || n.en || n.ar;
@@ -239,7 +239,7 @@ export function Dashboard({
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate">{pickName(p.name)}</div>
                         <div className="text-[11px] text-[var(--a-ink-muted)] num">
-                          SAR {p.price.toLocaleString(numLocale)}
+                          MAD {p.price.toLocaleString(numLocale)}
                         </div>
                       </div>
                     </Link>

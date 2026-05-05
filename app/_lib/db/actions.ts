@@ -110,7 +110,7 @@ export async function createProductAction(formData: FormData) {
     descFr: getStr(formData, "descFr") || null,
     price: getNum(formData, "price") ?? 0,
     compareAt: getNum(formData, "compareAt"),
-    currency: getStr(formData, "currency") || "SAR",
+    currency: getStr(formData, "currency") || "MAD",
     stock: getNum(formData, "stock") ?? 0,
     sizes: getList(formData, "sizes"),
     tags: getList(formData, "tags"),

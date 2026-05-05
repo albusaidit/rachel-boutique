@@ -76,7 +76,7 @@ export default function DesignsPage() {
                 <Image src={p.img} alt={p.title} width={600} height={800} />
               </div>
               <div className="d1-card-title">{p.title}</div>
-              <div className="d1-card-price">SAR {p.price}</div>
+              <div className="d1-card-price">MAD {p.price}</div>
             </div>
           ))}
         </div>
@@ -104,7 +104,7 @@ export default function DesignsPage() {
                 <Image src={p.img} alt={p.title} width={500} height={500} />
               </div>
               <div className="d2-card-title">{p.title}</div>
-              <div className="d2-card-price">{p.price} ر.س</div>
+              <div className="d2-card-price">{p.price} د.م.</div>
             </div>
           ))}
         </div>
@@ -132,7 +132,7 @@ export default function DesignsPage() {
                 <Image src={p.img} alt={p.title} width={600} height={800} />
               </div>
               <div className="d3-card-title">{p.title}</div>
-              <div className="d3-card-price">SAR {p.price}</div>
+              <div className="d3-card-price">MAD {p.price}</div>
             </div>
           ))}
         </div>
@@ -171,7 +171,7 @@ export default function DesignsPage() {
               </div>
               <div className="d4-card-meta">Clothing · 0{i + 1}</div>
               <div className="d4-card-title">{p.title}</div>
-              <div className="d4-card-price">SAR {p.price}</div>
+              <div className="d4-card-price">MAD {p.price}</div>
             </div>
           ))}
         </div>
@@ -204,7 +204,7 @@ export default function DesignsPage() {
               </div>
               <div className="d5-card-title">{p.title}</div>
               <div className="d5-card-en">SR BOUTIQUE · № 0{i + 1}</div>
-              <div className="d5-card-price">{p.price} ر.س</div>
+              <div className="d5-card-price">{p.price} د.م.</div>
             </div>
           ))}
         </div>

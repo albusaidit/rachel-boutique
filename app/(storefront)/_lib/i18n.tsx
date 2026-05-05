@@ -26,7 +26,7 @@ const dictionaries = {
       sectors: "أزياء · عطور · جمال",
     },
     marquee: [
-      "شحن مجاني فوق ٥٠٠ ر.س",
+      "شحن مجاني فوق ٥٠٠ د.م.",
       "إرجاع مجاني خلال ١٤ يوم",
       "تغليف هدايا مجاني",
       "تقسيط حتى ٦ أشهر بدون فوائد",
@@ -102,7 +102,7 @@ const dictionaries = {
       quick_add: "إضافة سريعة",
       only_n_left: (n: number) => `متبقي ${n} فقط`,
       added_to_cart: (name: string) => `تمت إضافة "${name}" إلى السلة`,
-      currency: "ر.س",
+      currency: "د.م.",
     },
     quick_view: {
       size: "المقاس",
@@ -110,7 +110,7 @@ const dictionaries = {
       qty: "الكمية",
       add_to_cart: "أضيفي إلى السلة",
       add_to_wishlist: "أضيفي للمفضلة",
-      free_shipping_over: "شحن مجاني فوق ٥٠٠ ر.س",
+      free_shipping_over: "شحن مجاني فوق ٥٠٠ د.م.",
       free_returns_14d: "إرجاع مجاني خلال ١٤ يوم",
       size_guide: "دليل المقاسات",
       pick_size_first: "اختاري المقاس أولاً",
@@ -129,7 +129,7 @@ const dictionaries = {
       empty_sub: "اكتشفي قطعنا المختارة وأضيفي ما يشبهكِ.",
       empty_cta: "ابدئي التسوّق",
       ship_progress: (left: number) =>
-        `أضيفي ${left.toLocaleString("ar-SA")} ر.س للحصول على توصيل مجاني`,
+        `أضيفي ${left.toLocaleString("ar-SA")} د.م. للحصول على توصيل مجاني`,
       ship_unlocked: "✓ حصلتِ على التوصيل المجاني",
       size_prefix: "مقاس",
       qty_minus: "نقص",
@@ -179,7 +179,7 @@ const dictionaries = {
       sectors: "Fashion · Fragrance · Beauty",
     },
     marquee: [
-      "Free shipping over SAR 500",
+      "Free shipping over MAD 500",
       "Free returns within 14 days",
       "Complimentary gift wrap",
       "Up to 6 interest-free instalments",
@@ -255,7 +255,7 @@ const dictionaries = {
       quick_add: "Quick add",
       only_n_left: (n: number) => `Only ${n} left`,
       added_to_cart: (name: string) => `"${name}" added to cart`,
-      currency: "SAR",
+      currency: "MAD",
     },
     quick_view: {
       size: "Size",
@@ -263,7 +263,7 @@ const dictionaries = {
       qty: "Quantity",
       add_to_cart: "Add to cart",
       add_to_wishlist: "Add to wishlist",
-      free_shipping_over: "Free shipping over SAR 500",
+      free_shipping_over: "Free shipping over MAD 500",
       free_returns_14d: "Free returns within 14 days",
       size_guide: "Size guide",
       pick_size_first: "Please select a size first",
@@ -282,7 +282,7 @@ const dictionaries = {
       empty_sub: "Discover our edit and add pieces that feel like you.",
       empty_cta: "Start shopping",
       ship_progress: (left: number) =>
-        `Add ${left.toLocaleString("en-US")} SAR more for free shipping`,
+        `Add ${left.toLocaleString("en-US")} MAD more for free shipping`,
       ship_unlocked: "✓ You've unlocked free shipping",
       size_prefix: "Size",
       qty_minus: "Decrease",
@@ -332,7 +332,7 @@ const dictionaries = {
       sectors: "Mode · Parfum · Beauté",
     },
     marquee: [
-      "Livraison offerte dès 500 SAR",
+      "Livraison offerte dès 500 MAD",
       "Retours gratuits sous 14 jours",
       "Emballage cadeau offert",
       "Paiement en 6 fois sans frais",
@@ -408,7 +408,7 @@ const dictionaries = {
       quick_add: "Ajout rapide",
       only_n_left: (n: number) => `Plus que ${n} en stock`,
       added_to_cart: (name: string) => `« ${name} » ajouté au panier`,
-      currency: "SAR",
+      currency: "MAD",
     },
     quick_view: {
       size: "Taille",
@@ -416,7 +416,7 @@ const dictionaries = {
       qty: "Quantité",
       add_to_cart: "Ajouter au panier",
       add_to_wishlist: "Ajouter aux favoris",
-      free_shipping_over: "Livraison offerte dès 500 SAR",
+      free_shipping_over: "Livraison offerte dès 500 MAD",
       free_returns_14d: "Retours gratuits sous 14 jours",
       size_guide: "Guide des tailles",
       pick_size_first: "Veuillez sélectionner une taille",
@@ -435,7 +435,7 @@ const dictionaries = {
       empty_sub: "Découvrez notre sélection et ajoutez les pièces qui vous ressemblent.",
       empty_cta: "Commencer mes achats",
       ship_progress: (left: number) =>
-        `Ajoutez ${left.toLocaleString("fr-FR")} SAR pour bénéficier de la livraison offerte`,
+        `Ajoutez ${left.toLocaleString("fr-FR")} MAD pour bénéficier de la livraison offerte`,
       ship_unlocked: "✓ La livraison est offerte",
       size_prefix: "Taille",
       qty_minus: "Diminuer",
