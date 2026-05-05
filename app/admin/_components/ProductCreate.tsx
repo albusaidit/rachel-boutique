@@ -7,6 +7,7 @@ import { createProductAction } from "@/app/_lib/db/actions";
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { useAdminToast } from "./AdminToast";
 import { DemoBanner, PageHeader } from "./PageHeader";
+import { ImageUploader } from "./ImageUploader";
 
 type Sub = { key: string; ar: string; en: string; fr: string };
 type Cat = {
@@ -29,6 +30,7 @@ export function ProductCreate({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [categoryKey, setCategoryKey] = useState(categories[0]?.key ?? "");
+  const [images, setImages] = useState<string[]>([]);
 
   const subcategories = useMemo(
     () => categories.find((c) => c.key === categoryKey)?.subcategories ?? [],
@@ -169,6 +171,9 @@ export function ProductCreate({
         </div>
 
         <aside className="space-y-6">
+          <Section title={d.product_detail.images}>
+            <ImageUploader name="images" value={images} onChange={setImages} />
+          </Section>
           <section className="bg-[var(--a-surface)] border border-[var(--a-line)] p-5 text-sm text-[var(--a-ink-soft)]">
             <h3 className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium mb-3">
               Next steps
@@ -176,7 +181,7 @@ export function ProductCreate({
             <ol className="list-decimal list-inside space-y-1.5 text-[var(--a-ink-muted)]">
               <li>Fill in the required fields and click Create.</li>
               <li>You&apos;ll land on the product detail page.</li>
-              <li>From there add colors, images, and finalize copy.</li>
+              <li>From there add colors and finalize copy.</li>
               <li>Set stock &gt; 0 to make it visible on the storefront.</li>
             </ol>
           </section>

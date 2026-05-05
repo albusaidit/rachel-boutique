@@ -89,6 +89,11 @@ export async function createProductAction(formData: FormData) {
     .limit(1);
   if (existing.length > 0) throw new Error("A product with this ID already exists");
 
+  const images = formData
+    .getAll("images[]")
+    .map((v) => v.toString().trim())
+    .filter(Boolean);
+
   await getDb().insert(schema.products).values({
     id,
     slug,
@@ -105,7 +110,7 @@ export async function createProductAction(formData: FormData) {
     sizes: getList(formData, "sizes"),
     tags: getList(formData, "tags"),
     colors: [],
-    images: [],
+    images,
     category,
     subcategory,
   });
