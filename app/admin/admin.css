@@ -1,4 +1,6 @@
 .admin-root {
+  font-size: 16px;
+  line-height: 1.55;
   --a-bg: #fafaf9;
   --a-surface: #ffffff;
   --a-surface-2: #f6f6f4;
@@ -90,4 +92,28 @@
 .admin-root .scrollbar-thin::-webkit-scrollbar-thumb {
   background: var(--a-line);
   border-radius: 3px;
+}
+
+/* Readability: bump tiny text and tame heavy letter-spacing across the admin */
+.admin-root .text-\[9px\] { font-size: 12px; line-height: 1.4; }
+.admin-root .text-\[10px\] { font-size: 12px; line-height: 1.4; }
+.admin-root .text-\[11px\] { font-size: 13px; line-height: 1.45; }
+.admin-root .text-xs { font-size: 14px; line-height: 1.5; }
+.admin-root .text-sm { font-size: 15px; line-height: 1.55; }
+.admin-root .text-base { font-size: 16px; line-height: 1.55; }
+
+.admin-root .tracking-\[0\.18em\] { letter-spacing: 0.05em; }
+.admin-root .tracking-\[0\.2em\] { letter-spacing: 0.06em; }
+.admin-root .tracking-\[0\.25em\] { letter-spacing: 0.06em; }
+.admin-root .tracking-\[0\.3em\] { letter-spacing: 0.06em; }
+.admin-root .tracking-\[0\.4em\] { letter-spacing: 0.06em; }
+
+/* Strengthen muted text contrast slightly */
+.admin-root {
+  --a-ink-muted: #585858;
+  --a-ink-faint: #8a8a8a;
+}
+.admin-root[data-theme="dark"] {
+  --a-ink-muted: #b0b0aa;
+  --a-ink-faint: #767672;
 }
