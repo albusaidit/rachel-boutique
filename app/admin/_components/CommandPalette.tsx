@@ -34,6 +34,7 @@ export function CommandPalette({
       { id: "p-inventory", group: "pages", label: d.nav.inventory, action: () => router.push("/admin/inventory") },
       { id: "p-orders", group: "pages", label: d.nav.orders, action: () => router.push("/admin/orders") },
       { id: "p-customers", group: "pages", label: d.nav.customers, action: () => router.push("/admin/customers") },
+      { id: "p-team", group: "pages", label: d.nav.team, action: () => router.push("/admin/team") },
       { id: "p-settings", group: "pages", label: d.nav.settings, action: () => router.push("/admin/settings") },
     ];
 

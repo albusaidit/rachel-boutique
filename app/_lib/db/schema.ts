@@ -5,6 +5,7 @@ import {
   timestamp,
   jsonb,
   serial,
+  boolean,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
@@ -77,3 +78,25 @@ export const settings = pgTable("settings", {
 });
 
 export type Setting = typeof settings.$inferSelect;
+
+export const adminUsers = pgTable(
+  "admin_users",
+  {
+    id: serial("id").primaryKey(),
+    username: text("username").notNull(),
+    name: text("name"),
+    email: text("email"),
+    passwordHash: text("password_hash").notNull(),
+    role: text("role").notNull().default("admin"),
+    active: boolean("active").notNull().default(true),
+    lastLoginAt: timestamp("last_login_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    usernameIdx: uniqueIndex("admin_users_username_idx").on(t.username),
+  }),
+);
+
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type NewAdminUser = typeof adminUsers.$inferInsert;

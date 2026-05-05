@@ -84,6 +84,7 @@ function LoginForm() {
   const params = useSearchParams();
   const { d } = useAdminLocale();
   const from = params.get("from") || "/admin";
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -95,7 +96,7 @@ function LoginForm() {
     const res = await fetch("/api/admin/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ username, password }),
     });
     if (res.ok) {
       router.replace(from);
@@ -110,13 +111,27 @@ function LoginForm() {
     <form onSubmit={submit} className="bg-[var(--a-surface)] border border-[var(--a-line)] p-8 space-y-5">
       <div>
         <label className="block text-[11px] tracking-[0.25em] uppercase text-[var(--a-ink-muted)] mb-2 font-medium">
+          {d.login.username}
+        </label>
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          autoFocus
+          autoComplete="username"
+          required
+          className="w-full border border-[var(--a-line)] px-4 py-3 text-sm outline-none focus:border-[var(--a-ink)] bg-[var(--a-surface)]"
+        />
+      </div>
+      <div>
+        <label className="block text-[11px] tracking-[0.25em] uppercase text-[var(--a-ink-muted)] mb-2 font-medium">
           {d.login.password}
         </label>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          autoFocus
+          autoComplete="current-password"
           required
           className="w-full border border-[var(--a-line)] px-4 py-3 text-sm outline-none focus:border-[var(--a-ink)] bg-[var(--a-surface)]"
         />
@@ -134,8 +149,10 @@ function LoginForm() {
         {busy ? d.login.submitting : d.login.submit}
       </button>
       <div className="text-[11px] text-[var(--a-ink-muted)] leading-relaxed border-t border-[var(--a-line)] pt-4">
-        {d.login.hint_default}{" "}
-        <code className="bg-[var(--a-line-soft)] px-1.5 py-0.5 rounded">rachel-admin</code>.{" "}
+        {d.login.hint_first_time}{" "}
+        <code className="bg-[var(--a-line-soft)] px-1.5 py-0.5 rounded">ADMIN_USERNAME</code>{" "}
+        /{" "}
+        <code className="bg-[var(--a-line-soft)] px-1.5 py-0.5 rounded">ADMIN_PASSWORD</code>.{" "}
         {d.login.hint_env}
       </div>
     </form>

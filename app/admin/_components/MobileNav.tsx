@@ -34,6 +34,7 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
     { href: "/admin/inventory", label: d.nav.inventory },
     { href: "/admin/orders", label: d.nav.orders },
     { href: "/admin/customers", label: d.nav.customers },
+    { href: "/admin/team", label: d.nav.team },
     { href: "/admin/settings", label: d.nav.settings },
   ];
 

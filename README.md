@@ -29,6 +29,32 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Admin panel
+
+The admin panel lives at `/admin` and is protected by username + password against the `admin_users` table.
+
+### First-time setup
+
+1. Provision a Postgres database (Vercel Postgres or Neon) and set `DATABASE_URL` (or `POSTGRES_URL`) in your environment.
+2. Push the schema:
+   ```bash
+   npx drizzle-kit push
+   ```
+3. Set the bootstrap credentials in env (used only when no users exist yet):
+   ```env
+   ADMIN_USERNAME=you
+   ADMIN_PASSWORD=a-strong-passphrase
+   ADMIN_SECRET=any-long-random-string
+   ```
+4. Visit `/admin/login`, sign in with `ADMIN_USERNAME` / `ADMIN_PASSWORD`. The first successful login creates an `owner` row in `admin_users` from those values; further logins go through the database.
+5. From `/admin/team` you can add more users, change passwords, set roles (`owner` / `admin` / `viewer`), and disable accounts. You can't delete or disable your own account.
+
+### Notes
+
+- Passwords are stored as scrypt hashes (`scrypt$N$r$p$salt$hash`).
+- Sessions are signed with `ADMIN_SECRET` (HMAC-SHA256) and last 7 days.
+- Once at least one user exists, the `ADMIN_USERNAME` / `ADMIN_PASSWORD` env vars stop being honored; manage credentials in `/admin/team` instead.
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
