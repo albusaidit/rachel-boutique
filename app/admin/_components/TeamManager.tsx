@@ -115,9 +115,26 @@ export function TeamManager({
             type="button"
             disabled={!dbReady || pending}
             onClick={() => setShowCreate((s) => !s)}
-            className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2 text-xs tracking-[0.2em] uppercase font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-expanded={showCreate}
+            className="inline-flex items-center gap-2 bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2.5 text-sm font-medium rounded-sm shadow-sm hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {d.team.add_user}
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden
+            >
+              {showCreate ? (
+                <path d="M18 6 6 18M6 6l12 12" />
+              ) : (
+                <path d="M12 5v14M5 12h14" />
+              )}
+            </svg>
+            <span>{showCreate ? d.common.cancel : d.team.add_user}</span>
           </button>
         }
       />
