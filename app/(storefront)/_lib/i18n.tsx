@@ -91,7 +91,7 @@ const dictionaries = {
       new_this_week: "✨ جديد هذا الأسبوع",
       sale_quick: "🎁 تخفيضات",
       contact_us: "تواصلي معنا",
-      whatsapp_label: "واتساب — ٠٥٠ ٠٠٠ ٠٠٠٠",
+      whatsapp_label: "واتساب — +٢١٢ ٧٠٠ ٧١ ٨٥ ٨٧",
     },
     product: {
       badge_new: "جديد",
@@ -244,7 +244,7 @@ const dictionaries = {
       new_this_week: "✨ New this week",
       sale_quick: "🎁 Sale",
       contact_us: "Contact us",
-      whatsapp_label: "WhatsApp — 050 000 0000",
+      whatsapp_label: "WhatsApp — +212 700 71 85 87",
     },
     product: {
       badge_new: "New",
@@ -397,7 +397,7 @@ const dictionaries = {
       new_this_week: "✨ Nouveautés de la semaine",
       sale_quick: "🎁 Soldes",
       contact_us: "Nous contacter",
-      whatsapp_label: "WhatsApp — 050 000 0000",
+      whatsapp_label: "WhatsApp — +212 700 71 85 87",
     },
     product: {
       badge_new: "Nouveau",

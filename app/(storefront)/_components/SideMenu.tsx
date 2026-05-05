@@ -206,7 +206,7 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
               <div className="font-medium text-[var(--ink)] tracking-wider text-xs uppercase mb-3">
                 {d.side_menu.contact_us}
               </div>
-              <a href="https://wa.me/966500000000" className="block hover:text-[var(--brand)] transition-colors">
+              <a href="https://api.whatsapp.com/send?phone=212700718587" className="block hover:text-[var(--brand)] transition-colors">
                 {d.side_menu.whatsapp_label}
               </a>
               <a href="mailto:hello@rachel.com" className="block hover:text-[var(--brand)] transition-colors">
