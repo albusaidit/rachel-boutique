@@ -156,6 +156,35 @@ export async function deleteProductAction(id: string) {
   revalidatePath("/");
 }
 
+export async function bulkDeleteProductsAction(ids: string[]) {
+  await ensureAuth();
+  ensureDb();
+  if (ids.length === 0) return { count: 0 };
+  const { inArray } = await import("drizzle-orm");
+  await getDb().delete(schema.products).where(inArray(schema.products.id, ids));
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { count: ids.length };
+}
+
+export async function bulkArchiveProductsAction(ids: string[], archive: boolean) {
+  await ensureAuth();
+  ensureDb();
+  if (ids.length === 0) return { count: 0 };
+  const { inArray } = await import("drizzle-orm");
+  await getDb()
+    .update(schema.products)
+    .set({ archivedAt: archive ? new Date() : null, updatedAt: new Date() })
+    .where(inArray(schema.products.id, ids));
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { count: ids.length };
+}
+
 export async function updateSettingsAction(formData: FormData) {
   await ensureAuth();
   ensureDb();

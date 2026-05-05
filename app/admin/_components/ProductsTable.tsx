@@ -2,9 +2,15 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
+import {
+  bulkArchiveProductsAction,
+  bulkDeleteProductsAction,
+} from "@/app/_lib/db/actions";
 import { useAdminLocale } from "../_lib/i18n-admin";
+import { useAdminToast } from "./AdminToast";
+import { Modal } from "./Modal";
 import { DemoBanner, PageHeader } from "./PageHeader";
 
 type Row = {
@@ -97,12 +103,16 @@ export function ProductsTable({
   dbReady?: boolean;
 }) {
   const { d, locale } = useAdminLocale();
+  const { push } = useAdminToast();
   const params = useSearchParams();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pending, start] = useTransition();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const onSortClick = (field: SortField) => {
     if (sortField === field) {
@@ -128,6 +138,9 @@ export function ProductsTable({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let r = rows;
+    if (categoryFilter !== "all") {
+      r = r.filter((p) => p.category === categoryFilter);
+    }
     if (filter === "out") {
       r = r.filter((p) => p.stock === 0);
     } else if (filter !== "all") {
@@ -161,7 +174,7 @@ export function ProductsTable({
       }
     });
     return sorted;
-  }, [rows, query, filter, sortField, sortDir, locale, catLabels]);
+  }, [rows, query, filter, categoryFilter, sortField, sortDir, locale, catLabels]);
 
   const allSelected = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
   const someSelected = !allSelected && filtered.some((p) => selected.has(p.id));
@@ -246,6 +259,18 @@ export function ProductsTable({
               />
             </div>
 
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="h-9 border border-[var(--a-line)] bg-[var(--a-surface)] px-3 text-sm rounded"
+              aria-label={d.products.col_category}
+            >
+              <option value="all">{d.products.col_category}: {d.products.filter_all}</option>
+              {categories.map((c) => (
+                <option key={c.key} value={c.key}>{c[locale] || c.en}</option>
+              ))}
+            </select>
+
             <div className="flex items-center gap-1 flex-wrap">
               {filters.map((f) => (
                 <button
@@ -275,16 +300,27 @@ export function ProductsTable({
               </button>
               <div className="flex-1" />
               <button
-                disabled
-                title={d.common.coming_soon}
-                className="text-xs px-3 py-1.5 border border-[var(--a-line)] text-[var(--a-ink-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => {
+                  const ids = Array.from(selected);
+                  start(async () => {
+                    try {
+                      await bulkArchiveProductsAction(ids, true);
+                      push(`Archived ${ids.length} product${ids.length === 1 ? "" : "s"}`, "success");
+                      setSelected(new Set());
+                    } catch (err) {
+                      push(err instanceof Error ? err.message : "Archive failed", "error");
+                    }
+                  });
+                }}
+                disabled={!dbReady || pending}
+                className="text-xs px-3 py-1.5 border border-[var(--a-line)] text-[var(--a-ink-soft)] hover:bg-[var(--a-line-soft)] disabled:opacity-50 disabled:cursor-not-allowed rounded-sm"
               >
                 {d.products.bulk_archive}
               </button>
               <button
-                disabled
-                title={d.common.coming_soon}
-                className="text-xs px-3 py-1.5 border border-[var(--a-danger-line)] text-[var(--a-danger)] disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setConfirmDelete(true)}
+                disabled={!dbReady || pending}
+                className="text-xs px-3 py-1.5 border border-[var(--a-danger-line)] text-[var(--a-danger)] hover:bg-[var(--a-danger-bg)] disabled:opacity-50 disabled:cursor-not-allowed rounded-sm"
               >
                 {d.products.bulk_delete}
               </button>
@@ -375,6 +411,48 @@ export function ProductsTable({
           </div>
         </div>
       </div>
+
+      <Modal
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title={d.products.bulk_delete}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--a-ink)]">
+            Permanently delete {selected.size} product{selected.size === 1 ? "" : "s"}? This cannot be undone.
+          </p>
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--a-line)]">
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="px-4 py-2 text-sm font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)]"
+            >
+              {d.common.cancel}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                const ids = Array.from(selected);
+                start(async () => {
+                  try {
+                    await bulkDeleteProductsAction(ids);
+                    push(`Deleted ${ids.length} product${ids.length === 1 ? "" : "s"}`, "success");
+                    setSelected(new Set());
+                    setConfirmDelete(false);
+                  } catch (err) {
+                    push(err instanceof Error ? err.message : "Delete failed", "error");
+                  }
+                });
+              }}
+              className="bg-[var(--a-danger)] text-white px-5 py-2 text-sm font-semibold rounded-sm hover:opacity-90 disabled:opacity-40"
+            >
+              {pending ? "…" : d.products.bulk_delete}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }
