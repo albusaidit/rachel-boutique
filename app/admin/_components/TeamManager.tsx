@@ -12,9 +12,16 @@ import {
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { useAdminToast } from "./AdminToast";
 import { DemoBanner, PageHeader } from "./PageHeader";
+import { Modal } from "./Modal";
 
 type Role = AdminUser["role"];
 const ROLES: Role[] = ["owner", "admin", "viewer"];
+
+type ActiveModal =
+  | { kind: "none" }
+  | { kind: "create" }
+  | { kind: "password"; user: AdminUser }
+  | { kind: "delete"; user: AdminUser };
 
 export function TeamManager({
   users,
@@ -28,7 +35,13 @@ export function TeamManager({
   const { d } = useAdminLocale();
   const { push } = useAdminToast();
   const [pending, start] = useTransition();
-  const [showCreate, setShowCreate] = useState(false);
+  const [modal, setModal] = useState<ActiveModal>({ kind: "none" });
+  const [pwInput, setPwInput] = useState("");
+
+  const closeModal = () => {
+    setModal({ kind: "none" });
+    setPwInput("");
+  };
 
   const roleLabel = (r: Role) =>
     r === "owner" ? d.team.role_owner : r === "admin" ? d.team.role_admin : d.team.role_viewer;
@@ -37,28 +50,29 @@ export function TeamManager({
     e.preventDefault();
     if (!dbReady) return;
     const formData = new FormData(e.currentTarget);
+    const formEl = e.currentTarget;
     start(async () => {
       try {
         await createAdminUserAction(formData);
         push(d.team.created_ok, "success");
-        (e.target as HTMLFormElement).reset();
-        setShowCreate(false);
+        formEl.reset();
+        closeModal();
       } catch (err) {
         push(err instanceof Error ? err.message : "Failed", "error");
       }
     });
   };
 
-  const onDelete = (u: AdminUser) => {
+  const onConfirmDelete = (u: AdminUser) => {
     if (currentUserId === u.id) {
       push(d.team.cannot_delete_self, "error");
       return;
     }
-    if (!confirm(d.team.delete_confirm)) return;
     start(async () => {
       try {
         await deleteAdminUserAction(u.id);
         push(d.team.deleted_ok, "success");
+        closeModal();
       } catch (err) {
         push(err instanceof Error ? err.message : "Failed", "error");
       }
@@ -92,13 +106,19 @@ export function TeamManager({
     });
   };
 
-  const onChangePassword = (u: AdminUser) => {
-    const next = window.prompt(d.team.new_password);
-    if (!next) return;
+  const onSubmitPassword = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (modal.kind !== "password") return;
+    const target = modal.user;
+    if (!pwInput || pwInput.length < 6) {
+      push("Password must be at least 6 characters", "error");
+      return;
+    }
     start(async () => {
       try {
-        await updateAdminUserPasswordAction(u.id, next);
+        await updateAdminUserPasswordAction(target.id, pwInput);
         push(d.team.password_changed, "success");
+        closeModal();
       } catch (err) {
         push(err instanceof Error ? err.message : "Failed", "error");
       }
@@ -114,76 +134,18 @@ export function TeamManager({
           <button
             type="button"
             disabled={!dbReady || pending}
-            onClick={() => setShowCreate((s) => !s)}
-            aria-expanded={showCreate}
+            onClick={() => setModal({ kind: "create" })}
             className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 text-base font-semibold rounded-md shadow hover:bg-emerald-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              aria-hidden
-            >
-              {showCreate ? (
-                <path d="M18 6 6 18M6 6l12 12" />
-              ) : (
-                <path d="M12 5v14M5 12h14" />
-              )}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+              <path d="M12 5v14M5 12h14" />
             </svg>
-            <span>{showCreate ? d.common.cancel : d.team.add_user}</span>
+            <span>{d.team.add_user}</span>
           </button>
         }
       />
       <div className="px-8 py-6 space-y-5">
         {!dbReady && <DemoBanner>{d.common.demo_banner}</DemoBanner>}
-
-        {showCreate && dbReady && (
-          <form
-            onSubmit={onCreate}
-            className="bg-[var(--a-surface)] border border-[var(--a-line)] p-5 grid grid-cols-1 md:grid-cols-2 gap-4"
-          >
-            <Field name="username" label={d.team.username} required />
-            <Field name="password" label={d.team.password} type="password" required />
-            <Field name="name" label={d.team.name} />
-            <Field name="email" label={d.team.email} type="email" />
-            <label className="block">
-              <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
-                {d.team.role}
-              </span>
-              <select
-                name="role"
-                defaultValue="admin"
-                className="mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] focus:border-[var(--a-ink)] outline-none"
-              >
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {roleLabel(r)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="md:col-span-2 flex justify-end gap-2 pt-2 border-t border-[var(--a-line)]">
-              <button
-                type="button"
-                onClick={() => setShowCreate(false)}
-                className="px-4 py-2 text-xs tracking-[0.2em] uppercase border border-[var(--a-line)] text-[var(--a-ink-muted)]"
-              >
-                {d.common.cancel}
-              </button>
-              <button
-                type="submit"
-                disabled={pending}
-                className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2 text-xs tracking-[0.2em] uppercase font-medium disabled:opacity-40"
-              >
-                {pending ? "…" : d.team.add_user}
-              </button>
-            </div>
-          </form>
-        )}
 
         <section className="bg-[var(--a-surface)] border border-[var(--a-line)] overflow-x-auto">
           <table className="w-full text-sm">
@@ -262,9 +224,9 @@ export function TeamManager({
                         <div className="inline-flex gap-1">
                           <button
                             type="button"
-                            onClick={() => onChangePassword(u)}
+                            onClick={() => setModal({ kind: "password", user: u })}
                             disabled={pending}
-                            className="px-2 py-1 text-[10px] tracking-[0.2em] uppercase border border-[var(--a-line)] text-[var(--a-ink-muted)] hover:text-[var(--a-ink)]"
+                            className="px-3 py-1.5 text-xs font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] hover:text-[var(--a-ink)] hover:bg-[var(--a-line-soft)] rounded-sm transition-colors"
                           >
                             {d.team.change_password}
                           </button>
@@ -272,15 +234,15 @@ export function TeamManager({
                             type="button"
                             onClick={() => onToggleActive(u)}
                             disabled={pending}
-                            className="px-2 py-1 text-[10px] tracking-[0.2em] uppercase border border-[var(--a-line)] text-[var(--a-ink-muted)] hover:text-[var(--a-ink)]"
+                            className="px-3 py-1.5 text-xs font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] hover:text-[var(--a-ink)] hover:bg-[var(--a-line-soft)] rounded-sm transition-colors"
                           >
                             {u.active ? d.team.deactivate : d.team.activate}
                           </button>
                           <button
                             type="button"
-                            onClick={() => onDelete(u)}
+                            onClick={() => setModal({ kind: "delete", user: u })}
                             disabled={pending || isSelf}
-                            className="px-2 py-1 text-[10px] tracking-[0.2em] uppercase border border-[var(--a-danger-line)] text-[var(--a-danger)] hover:bg-[var(--a-danger-bg)] disabled:opacity-30"
+                            className="px-3 py-1.5 text-xs font-medium border border-[var(--a-danger-line)] text-[var(--a-danger)] hover:bg-[var(--a-danger-bg)] disabled:opacity-30 rounded-sm transition-colors"
                           >
                             {d.team.delete}
                           </button>
@@ -294,6 +256,131 @@ export function TeamManager({
           </table>
         </section>
       </div>
+
+      <Modal
+        open={modal.kind === "create"}
+        onClose={closeModal}
+        title={d.team.add_user}
+      >
+        <form onSubmit={onCreate} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field name="username" label={d.team.username} required autoFocus />
+            <Field name="password" label={d.team.password} type="password" required />
+            <Field name="name" label={d.team.name} />
+            <Field name="email" label={d.team.email} type="email" />
+            <label className="block md:col-span-2">
+              <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
+                {d.team.role}
+              </span>
+              <select
+                name="role"
+                defaultValue="admin"
+                className="mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] focus:border-[var(--a-ink)] outline-none rounded-sm"
+              >
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {roleLabel(r)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--a-line)]">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="px-4 py-2 text-sm font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)]"
+            >
+              {d.common.cancel}
+            </button>
+            <button
+              type="submit"
+              disabled={pending}
+              className="bg-emerald-600 text-white px-5 py-2 text-sm font-semibold rounded-sm hover:bg-emerald-700 disabled:opacity-40"
+            >
+              {pending ? "…" : d.team.add_user}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        open={modal.kind === "password"}
+        onClose={closeModal}
+        title={d.team.change_password}
+        size="sm"
+      >
+        <form onSubmit={onSubmitPassword} className="space-y-4">
+          {modal.kind === "password" && (
+            <p className="text-sm text-[var(--a-ink-soft)]">
+              {modal.user.username}
+            </p>
+          )}
+          <label className="block">
+            <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
+              {d.team.new_password}
+            </span>
+            <input
+              type="password"
+              autoFocus
+              value={pwInput}
+              onChange={(e) => setPwInput(e.target.value)}
+              className="mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] focus:border-[var(--a-ink)] outline-none rounded-sm"
+            />
+          </label>
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--a-line)]">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="px-4 py-2 text-sm font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)]"
+            >
+              {d.common.cancel}
+            </button>
+            <button
+              type="submit"
+              disabled={pending}
+              className="bg-emerald-600 text-white px-5 py-2 text-sm font-semibold rounded-sm hover:bg-emerald-700 disabled:opacity-40"
+            >
+              {pending ? "…" : d.common.confirm}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        open={modal.kind === "delete"}
+        onClose={closeModal}
+        title={d.team.delete}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--a-ink)]">
+            {d.team.delete_confirm}
+          </p>
+          {modal.kind === "delete" && (
+            <p className="text-sm text-[var(--a-ink-muted)] font-mono bg-[var(--a-line-soft)] px-3 py-2 rounded-sm">
+              {modal.user.username}
+            </p>
+          )}
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--a-line)]">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="px-4 py-2 text-sm font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)]"
+            >
+              {d.common.cancel}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => modal.kind === "delete" && onConfirmDelete(modal.user)}
+              className="bg-red-600 text-white px-5 py-2 text-sm font-semibold rounded-sm hover:bg-red-700 disabled:opacity-40"
+            >
+              {pending ? "…" : d.team.delete}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }
@@ -303,11 +390,13 @@ function Field({
   label,
   type = "text",
   required = false,
+  autoFocus = false,
 }: {
   name: string;
   label: string;
   type?: string;
   required?: boolean;
+  autoFocus?: boolean;
 }) {
   return (
     <label className="block">
@@ -319,8 +408,9 @@ function Field({
         name={name}
         type={type}
         required={required}
+        autoFocus={autoFocus}
         autoComplete="off"
-        className="mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] focus:border-[var(--a-ink)] outline-none"
+        className="mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] focus:border-[var(--a-ink)] outline-none rounded-sm"
       />
     </label>
   );
