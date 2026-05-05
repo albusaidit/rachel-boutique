@@ -167,7 +167,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                           View
                         </button>
                         <a
-                          href={`https://wa.me/${o.phone.replace(/[^0-9]/g, "")}`}
+                          href={`https://api.whatsapp.com/send?phone=${o.phone.replace(/[^0-9]/g, "")}`}
                           target="_blank"
                           rel="noreferrer"
                           className="px-2 py-1 text-xs border border-[var(--a-line)] text-[var(--a-ink-soft)] hover:bg-[var(--a-line-soft)] rounded-sm"

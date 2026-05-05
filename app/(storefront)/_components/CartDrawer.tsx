@@ -83,7 +83,7 @@ export function CartDrawer() {
 
   const sendToWhatsApp = async () => {
     const text = whatsappMessage(items, subtotal, name, phone, city, d, locale);
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+    const url = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(text)}`;
     try {
       await createOrderAction({
         customerName: name,
