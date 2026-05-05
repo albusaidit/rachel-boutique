@@ -212,13 +212,19 @@ export function ProductsTable({
               </svg>
               {d.products.export}
             </button>
-            <button
-              disabled
-              title={d.common.coming_soon}
-              className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2 text-xs tracking-[0.2em] uppercase font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+            <Link
+              href="/admin/products/new"
+              className={`inline-flex items-center gap-2 bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2.5 text-sm font-semibold rounded-md shadow hover:opacity-90 transition-opacity ${
+                dbReady ? "" : "opacity-40 pointer-events-none"
+              }`}
+              aria-disabled={!dbReady}
+              title={!dbReady ? d.common.coming_soon : undefined}
             >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+                <path d="M12 5v14M5 12h14" />
+              </svg>
               {d.products.new}
-            </button>
+            </Link>
           </>
         }
       />

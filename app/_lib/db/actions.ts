@@ -60,6 +60,63 @@ export async function updateProductAction(id: string, formData: FormData) {
   revalidatePath("/");
 }
 
+export async function createProductAction(formData: FormData) {
+  await ensureAuth();
+  ensureDb();
+  const id = getStr(formData, "id");
+  const slug = getStr(formData, "slug");
+  const nameEn = getStr(formData, "nameEn");
+  const nameAr = getStr(formData, "nameAr");
+  const descEn = getStr(formData, "descEn");
+  const descAr = getStr(formData, "descAr");
+  const category = getStr(formData, "category");
+  const subcategory = getStr(formData, "subcategory");
+
+  if (!id || !slug || !nameEn || !nameAr || !descEn || !descAr || !category || !subcategory) {
+    throw new Error("Missing required fields");
+  }
+  if (!/^[a-z0-9-]+$/.test(id)) {
+    throw new Error("ID must be lowercase letters, digits or hyphens");
+  }
+  if (!/^[a-z0-9-]+$/.test(slug)) {
+    throw new Error("Slug must be lowercase letters, digits or hyphens");
+  }
+
+  const existing = await getDb()
+    .select({ id: schema.products.id })
+    .from(schema.products)
+    .where(eq(schema.products.id, id))
+    .limit(1);
+  if (existing.length > 0) throw new Error("A product with this ID already exists");
+
+  await getDb().insert(schema.products).values({
+    id,
+    slug,
+    nameEn,
+    nameAr,
+    nameFr: getStr(formData, "nameFr") || null,
+    descEn,
+    descAr,
+    descFr: getStr(formData, "descFr") || null,
+    price: getNum(formData, "price") ?? 0,
+    compareAt: getNum(formData, "compareAt"),
+    currency: getStr(formData, "currency") || "SAR",
+    stock: getNum(formData, "stock") ?? 0,
+    sizes: getList(formData, "sizes"),
+    tags: getList(formData, "tags"),
+    colors: [],
+    images: [],
+    category,
+    subcategory,
+  });
+
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { id };
+}
+
 export async function adjustStockAction(id: string, delta: number) {
   await ensureAuth();
   ensureDb();
