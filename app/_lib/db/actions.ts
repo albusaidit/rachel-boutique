@@ -38,6 +38,10 @@ function getList(formData: FormData, key: string): string[] {
 export async function updateProductAction(id: string, formData: FormData) {
   await ensureAuth();
   ensureDb();
+  const images = formData
+    .getAll("images[]")
+    .map((v) => v.toString().trim())
+    .filter(Boolean);
   const update: Partial<typeof schema.products.$inferInsert> = {
     nameEn: getStr(formData, "nameEn"),
     nameAr: getStr(formData, "nameAr"),
@@ -50,6 +54,7 @@ export async function updateProductAction(id: string, formData: FormData) {
     stock: getNum(formData, "stock") ?? 0,
     sizes: getList(formData, "sizes"),
     tags: getList(formData, "tags"),
+    images,
     updatedAt: new Date(),
   };
   await getDb().update(schema.products).set(update).where(eq(schema.products.id, id));

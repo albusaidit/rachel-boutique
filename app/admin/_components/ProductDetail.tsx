@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { updateProductAction } from "@/app/_lib/db/actions";
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { useAdminToast } from "./AdminToast";
 import { DemoBanner, PageHeader } from "./PageHeader";
+import { ImageUploader } from "./ImageUploader";
 
 type Product = {
   id: string;
@@ -37,6 +37,7 @@ export function ProductDetail({
   const { d, locale } = useAdminLocale();
   const { push } = useAdminToast();
   const [pending, start] = useTransition();
+  const [images, setImages] = useState<string[]>(product.images);
   const catLabel =
     categories.find((c) => c.key === product.category)?.[locale] ||
     categories.find((c) => c.key === product.category)?.en ||
@@ -148,22 +149,7 @@ export function ProductDetail({
 
         <aside className="space-y-6">
           <Section title={d.product_detail.images}>
-            <div className="grid grid-cols-2 gap-2">
-              {product.images.map((src, i) => (
-                <div
-                  key={i}
-                  className="relative aspect-[3/4] bg-[var(--a-line-soft)] overflow-hidden rounded-sm"
-                >
-                  <Image
-                    src={src}
-                    alt=""
-                    fill
-                    sizes="(max-width: 1024px) 50vw, 200px"
-                    className="object-cover"
-                  />
-                </div>
-              ))}
-            </div>
+            <ImageUploader name="images" value={images} onChange={setImages} />
           </Section>
           <Section title={d.product_detail.storefront}>
             <Link
