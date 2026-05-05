@@ -6,6 +6,9 @@ import { useEffect, useState } from "react";
 import { useCart } from "../_lib/cart";
 import { pickLocale } from "../_lib/products";
 import { useLocale, type Dict, type Locale } from "../_lib/i18n";
+import { createOrderAction } from "@/app/_lib/db/orders-actions";
+
+const WHATSAPP_NUMBER = "212700718587";
 
 const SHIPPING_FREE_AT = 500;
 
@@ -78,9 +81,29 @@ export function CartDrawer() {
   const canCheckout = name.trim() && phone.trim().length >= 8 && city.trim();
   const priceLocaleTag = locale === "ar" ? "ar-SA" : locale === "fr" ? "fr-FR" : "en-US";
 
-  const sendToWhatsApp = () => {
+  const sendToWhatsApp = async () => {
     const text = whatsappMessage(items, subtotal, name, phone, city, d, locale);
-    const url = `https://wa.me/966500000000?text=${encodeURIComponent(text)}`;
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+    try {
+      await createOrderAction({
+        customerName: name,
+        phone,
+        city,
+        locale,
+        currency: d.product.currency,
+        subtotal,
+        items: items.map(({ line, product }) => ({
+          productId: product.id,
+          name: pickLocale(product.name, locale),
+          size: line.size,
+          color: line.color,
+          qty: line.qty,
+          unitPrice: product.price,
+        })),
+      });
+    } catch {
+      // non-fatal; still open WhatsApp so the customer can place the order
+    }
     window.open(url, "_blank");
   };
 

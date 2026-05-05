@@ -35,7 +35,7 @@ export const SETTINGS_DEFAULTS: SettingsMap = {
   currency: "MAD",
   free_ship_threshold: "500",
   returns_window: "14",
-  whatsapp: "+966 50 000 0000",
+  whatsapp: "+212 700 71 85 87",
   email: "hello@rachel.com",
   instagram: "@rachel.boutique",
 };
