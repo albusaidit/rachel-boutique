@@ -135,7 +135,7 @@ export function TeamManager({
             type="button"
             disabled={!dbReady || pending}
             onClick={() => setModal({ kind: "create" })}
-            className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 text-base font-semibold rounded-md shadow hover:bg-emerald-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-6 py-3 text-base font-semibold rounded-md shadow hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
               <path d="M12 5v14M5 12h14" />
@@ -296,7 +296,7 @@ export function TeamManager({
             <button
               type="submit"
               disabled={pending}
-              className="bg-emerald-600 text-white px-5 py-2 text-sm font-semibold rounded-sm hover:bg-emerald-700 disabled:opacity-40"
+              className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2 text-sm font-semibold rounded-sm hover:opacity-90 disabled:opacity-40"
             >
               {pending ? "…" : d.team.add_user}
             </button>
@@ -339,7 +339,7 @@ export function TeamManager({
             <button
               type="submit"
               disabled={pending}
-              className="bg-emerald-600 text-white px-5 py-2 text-sm font-semibold rounded-sm hover:bg-emerald-700 disabled:opacity-40"
+              className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2 text-sm font-semibold rounded-sm hover:opacity-90 disabled:opacity-40"
             >
               {pending ? "…" : d.common.confirm}
             </button>
@@ -374,7 +374,7 @@ export function TeamManager({
               type="button"
               disabled={pending}
               onClick={() => modal.kind === "delete" && onConfirmDelete(modal.user)}
-              className="bg-red-600 text-white px-5 py-2 text-sm font-semibold rounded-sm hover:bg-red-700 disabled:opacity-40"
+              className="bg-[var(--a-danger)] text-white px-5 py-2 text-sm font-semibold rounded-sm hover:opacity-90 disabled:opacity-40"
             >
               {pending ? "…" : d.team.delete}
             </button>
