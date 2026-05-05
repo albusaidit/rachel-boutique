@@ -207,6 +207,27 @@ export function ProductsTable({
     { key: "out", label: d.products.filter_out },
   ];
 
+  const categoryStats = useMemo(() => {
+    const map = new Map<string, { count: number; cover?: string }>();
+    rows.forEach((p) => {
+      const stat = map.get(p.category) ?? { count: 0, cover: undefined };
+      stat.count += 1;
+      if (!stat.cover && p.image) stat.cover = p.image;
+      map.set(p.category, stat);
+    });
+    return categories.map((c) => ({
+      key: c.key,
+      label: c[locale] || c.en,
+      count: map.get(c.key)?.count ?? 0,
+      cover: map.get(c.key)?.cover,
+    }));
+  }, [rows, categories, locale]);
+
+  const newProductHref =
+    categoryFilter === "all"
+      ? "/admin/products/new"
+      : `/admin/products/new?category=${encodeURIComponent(categoryFilter)}`;
+
   return (
     <>
       <PageHeader
@@ -226,7 +247,7 @@ export function ProductsTable({
               {d.products.export}
             </button>
             <Link
-              href="/admin/products/new"
+              href={newProductHref}
               className={`inline-flex items-center gap-2 bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2.5 text-sm font-semibold rounded-md shadow hover:opacity-90 transition-opacity ${
                 dbReady ? "" : "opacity-40 pointer-events-none"
               }`}
@@ -243,6 +264,69 @@ export function ProductsTable({
       />
       <div className="px-8 py-6 space-y-5">
         {!dbReady && <DemoBanner>{d.common.demo_banner}</DemoBanner>}
+
+        <section className="bg-[var(--a-surface)] border border-[var(--a-line)] p-4">
+          <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium mb-3">
+            {d.products.col_category}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setCategoryFilter("all")}
+              className={`flex items-center gap-2 px-3 h-10 rounded-md border text-sm font-medium transition-colors ${
+                categoryFilter === "all"
+                  ? "bg-[var(--a-accent)] text-[var(--a-accent-fg)] border-[var(--a-accent)]"
+                  : "bg-[var(--a-surface)] border-[var(--a-line)] text-[var(--a-ink-soft)] hover:bg-[var(--a-line-soft)]"
+              }`}
+            >
+              <span>{d.products.filter_all}</span>
+              <span className="text-xs opacity-80">{rows.length}</span>
+            </button>
+            {categoryStats.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => setCategoryFilter(c.key)}
+                className={`flex items-center gap-2 ps-1 pe-3 h-10 rounded-md border text-sm font-medium transition-colors ${
+                  categoryFilter === c.key
+                    ? "bg-[var(--a-accent)] text-[var(--a-accent-fg)] border-[var(--a-accent)]"
+                    : "bg-[var(--a-surface)] border-[var(--a-line)] text-[var(--a-ink-soft)] hover:bg-[var(--a-line-soft)]"
+                }`}
+              >
+                <span className="relative w-8 h-8 rounded overflow-hidden bg-[var(--a-line-soft)]">
+                  {c.cover && (
+                    <Image src={c.cover} alt="" fill sizes="32px" className="object-cover" />
+                  )}
+                </span>
+                <span>{c.label}</span>
+                <span className="text-xs opacity-80">{c.count}</span>
+              </button>
+            ))}
+          </div>
+          {categoryFilter !== "all" && (
+            <div className="mt-3 pt-3 border-t border-[var(--a-line)] flex items-center gap-3 text-sm">
+              <span className="text-[var(--a-ink-muted)]">
+                Working in: <span className="text-[var(--a-ink)] font-medium">{categoryStats.find((c) => c.key === categoryFilter)?.label}</span>
+              </span>
+              <Link
+                href={newProductHref}
+                className="ms-auto inline-flex items-center gap-1.5 bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-3 py-1.5 text-xs font-semibold rounded-sm hover:opacity-90"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Add to this category
+              </Link>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter("all")}
+                className="text-xs text-[var(--a-ink-muted)] hover:text-[var(--a-ink)] underline"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </section>
 
         <div className="bg-[var(--a-surface)] border border-[var(--a-line)]">
           <div className="px-4 py-3 border-b border-[var(--a-line)] flex flex-wrap items-center gap-3">

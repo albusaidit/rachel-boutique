@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { createProductAction } from "@/app/_lib/db/actions";
 import { useAdminLocale } from "../_lib/i18n-admin";
@@ -29,7 +29,13 @@ export function ProductCreate({
   const { push } = useAdminToast();
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [categoryKey, setCategoryKey] = useState(categories[0]?.key ?? "");
+  const params = useSearchParams();
+  const initialCategory = params.get("category");
+  const [categoryKey, setCategoryKey] = useState(
+    initialCategory && categories.some((c) => c.key === initialCategory)
+      ? initialCategory
+      : categories[0]?.key ?? "",
+  );
   const [images, setImages] = useState<string[]>([]);
 
   const subcategories = useMemo(
