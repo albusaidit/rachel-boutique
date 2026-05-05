@@ -116,15 +116,15 @@ export function TeamManager({
             disabled={!dbReady || pending}
             onClick={() => setShowCreate((s) => !s)}
             aria-expanded={showCreate}
-            className="inline-flex items-center gap-2 bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2.5 text-sm font-medium rounded-sm shadow-sm hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 text-base font-semibold rounded-md shadow hover:bg-emerald-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <svg
-              width="16"
-              height="16"
+              width="20"
+              height="20"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.4"
               strokeLinecap="round"
               aria-hidden
             >
