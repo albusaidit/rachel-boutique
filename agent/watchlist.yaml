@@ -1,0 +1,23 @@
+# Products to monitor.
+#
+# Each entry needs `name` and `url`. Selectors are CSS selectors evaluated
+# against the page's HTML; either selector can be omitted if you only want
+# to track price or only stock.
+#
+#   target_price : optional. Triggers a Slack alert the first time the
+#                  current price crosses below this number.
+#
+# The agent will also alert on any price drop vs. the previous run, and
+# on a transition from out-of-stock to in-stock.
+
+products:
+  - name: Sony WH-1000XM5 Headphones
+    url: https://www.amazon.com/dp/B09XS7JWHH
+    price_selector: ".a-price .a-offscreen"
+    stock_selector: "#availability"
+    target_price: 299.99
+
+  - name: Example Best Buy Product
+    url: https://www.bestbuy.com/site/example-product/123456.p
+    price_selector: ".priceView-customer-price span"
+    stock_selector: ".fulfillment-add-to-cart-button"
