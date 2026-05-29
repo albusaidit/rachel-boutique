@@ -8,10 +8,13 @@ import {
   updateOrderShippingAction,
 } from "@/app/_lib/db/orders-actions";
 import {
+  defaultLangFor,
+  LANGS,
   mailtoLink,
   notifyBody,
   notifySubject,
   whatsappLink,
+  type Lang,
   type Stage,
 } from "../_lib/order-notifications";
 import { useAdminLocale } from "../_lib/i18n-admin";
@@ -47,6 +50,12 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
   const [cancelTarget, setCancelTarget] = useState<OrderRow | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [shipForm, setShipForm] = useState({ trackingNumber: "", carrier: "", shippingNotes: "" });
+  const [notifyLang, setNotifyLang] = useState<Record<Stage, Lang>>({
+    received: "en",
+    confirmed: "en",
+    shipped: "en",
+    cancelled: "en",
+  });
 
   useEffect(() => {
     if (!openOrder) return;
@@ -55,6 +64,8 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
       carrier: openOrder.carrier ?? "",
       shippingNotes: openOrder.shippingNotes ?? "",
     });
+    const def = defaultLangFor(openOrder);
+    setNotifyLang({ received: def, confirmed: def, shipped: def, cancelled: def });
   }, [openOrder]);
 
   const saveShipping = (o: OrderRow) => {
@@ -79,9 +90,9 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
     return "received";
   };
 
-  const buildNotifyHrefs = (o: OrderRow, stage: Stage) => {
-    const subject = notifySubject(stage, o);
-    const body = notifyBody(stage, o);
+  const buildNotifyHrefs = (o: OrderRow, stage: Stage, lang: Lang) => {
+    const subject = notifySubject(stage, o, lang);
+    const body = notifyBody(stage, o, lang);
     return {
       whatsapp: whatsappLink(o.phone, body),
       mailto: o.email ? mailtoLink(o.email, subject, body) : null,
@@ -324,7 +335,8 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
         {openOrder && (() => {
           const o = openOrder;
           const stage = stageOf(o);
-          const notify = (s: Stage) => buildNotifyHrefs(o, s);
+          const notify = (s: Stage) => buildNotifyHrefs(o, s, notifyLang[s]);
+          const LANG_LABEL: Record<Lang, string> = { ar: "AR", en: "EN", fr: "FR" };
           const StageMarker = ({ active, label, at }: { active: boolean; label: string; at: string | null }) => (
             <div className="flex-1 text-center">
               <div className={`mx-auto w-2.5 h-2.5 rounded-full ${active ? "bg-[var(--a-accent)]" : "bg-[var(--a-line)]"}`} />
@@ -333,13 +345,49 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
             </div>
           );
           const NotifyBlock = ({ s, title, hint }: { s: Stage; title: string; hint: string }) => {
+            const activeLang = notifyLang[s];
             const n = notify(s);
+            const isDefault = activeLang === defaultLangFor(o);
+            const isRtl = activeLang === "ar";
             return (
               <div className="bg-[var(--a-line-soft)]/50 border border-[var(--a-line)] rounded-md p-3">
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <div className="text-sm font-medium">{title}</div>
+                  <div className="inline-flex border border-[var(--a-line)] rounded-sm overflow-hidden text-[10px] tracking-[0.18em] font-medium">
+                    {LANGS.map((l) => (
+                      <button
+                        key={l}
+                        type="button"
+                        onClick={() => setNotifyLang((prev) => ({ ...prev, [s]: l }))}
+                        aria-pressed={activeLang === l}
+                        className={`px-2 py-0.5 transition-colors ${
+                          activeLang === l
+                            ? "bg-[var(--a-accent)] text-[var(--a-accent-fg)]"
+                            : "bg-[var(--a-surface)] text-[var(--a-ink-muted)] hover:text-[var(--a-ink)]"
+                        }`}
+                      >
+                        {LANG_LABEL[l]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="text-xs text-[var(--a-ink-muted)] mb-2.5">{hint}</div>
+                <div className="text-xs text-[var(--a-ink-muted)] mb-1.5">{hint}</div>
+                {!isDefault && (
+                  <div className="text-[10px] text-[var(--a-ink-faint)] italic mb-1.5">
+                    Customer ordered in {LANG_LABEL[defaultLangFor(o)]}
+                  </div>
+                )}
+                <details className="mb-2.5 group">
+                  <summary className="text-[11px] text-[var(--a-ink-muted)] hover:text-[var(--a-ink)] cursor-pointer select-none">
+                    Preview message ▾
+                  </summary>
+                  <pre
+                    dir={isRtl ? "rtl" : "ltr"}
+                    className="mt-1.5 text-[11px] text-[var(--a-ink-soft)] bg-[var(--a-surface)] border border-[var(--a-line)] rounded-sm px-2.5 py-2 whitespace-pre-wrap break-words font-sans max-h-40 overflow-y-auto"
+                  >
+                    {n.body}
+                  </pre>
+                </details>
                 <div className="flex flex-wrap gap-1.5">
                   <a
                     href={n.whatsapp}

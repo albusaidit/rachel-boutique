@@ -1,9 +1,10 @@
 import type { OrderRow } from "@/app/_lib/db/orders-repo";
 
 export type Stage = "received" | "confirmed" | "shipped" | "cancelled";
-type Lang = "ar" | "en" | "fr";
+export type Lang = "ar" | "en" | "fr";
+export const LANGS: readonly Lang[] = ["ar", "en", "fr"] as const;
 
-function localeOf(o: OrderRow): Lang {
+export function defaultLangFor(o: OrderRow): Lang {
   if (o.locale === "ar" || o.locale === "fr") return o.locale;
   return "en";
 }
@@ -19,8 +20,8 @@ function itemsLine(o: OrderRow, lang: Lang): string {
     .join("\n");
 }
 
-export function notifySubject(stage: Stage, o: OrderRow): string {
-  const lang = localeOf(o);
+export function notifySubject(stage: Stage, o: OrderRow, langOverride?: Lang): string {
+  const lang: Lang = langOverride ?? defaultLangFor(o);
   if (stage === "received") {
     if (lang === "ar") return `RACHÉL · استلمنا طلبك #${o.id}`;
     if (lang === "fr") return `RACHÉL · Commande #${o.id} reçue`;
@@ -41,8 +42,8 @@ export function notifySubject(stage: Stage, o: OrderRow): string {
   return `RACHÉL · Order #${o.id} shipped`;
 }
 
-export function notifyBody(stage: Stage, o: OrderRow): string {
-  const lang = localeOf(o);
+export function notifyBody(stage: Stage, o: OrderRow, langOverride?: Lang): string {
+  const lang: Lang = langOverride ?? defaultLangFor(o);
   const total = `${o.currency} ${o.subtotal.toLocaleString(
     lang === "ar" ? "ar-SA" : lang === "fr" ? "fr-FR" : "en-US",
   )}`;
