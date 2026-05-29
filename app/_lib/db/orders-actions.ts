@@ -3,8 +3,28 @@
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "./client";
-import type { OrderItem } from "./orders-repo";
+import type { OrderItem, OrderRow } from "./orders-repo";
+import { findOrder } from "./orders-repo";
 import { isAuthed } from "@/app/admin/_lib/auth";
+import { isConfigured as waConfigured, sendText as waSendText } from "@/app/_lib/whatsapp/client";
+import { defaultLangFor, notifyBody, type Stage } from "@/app/admin/_lib/order-notifications";
+
+async function autoSendStage(orderId: number, stage: Stage): Promise<void> {
+  if (!waConfigured()) return;
+  let order: OrderRow | null = null;
+  try {
+    order = await findOrder(orderId);
+  } catch {
+    return;
+  }
+  if (!order) return;
+  const body = notifyBody(stage, order, defaultLangFor(order));
+  try {
+    await waSendText(order.phone, body, { orderId });
+  } catch {
+    // best-effort; failures are persisted in whatsapp_messages by the helper
+  }
+}
 
 export type CreateOrderInput = {
   customerName: string;
@@ -65,6 +85,10 @@ export async function createOrderAction(
 
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
+
+  // Best-effort auto-confirmation to the customer. Silent if WA isn't wired up.
+  void autoSendStage(row.id, "received");
+
   return { ok: true, id: row.id };
 }
 
@@ -96,6 +120,11 @@ export async function setOrderStatusAction(
     .where(eq(schema.orders.id, id));
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
+
+  // Auto-notify customer per stage, best effort.
+  if (status === "confirmed") void autoSendStage(id, "confirmed");
+  if (status === "shipped") void autoSendStage(id, "shipped");
+  if (status === "cancelled") void autoSendStage(id, "cancelled");
 }
 
 export async function updateOrderShippingAction(
@@ -133,4 +162,26 @@ export async function deleteOrderAction(id: number) {
   await getDb().delete(schema.orders).where(eq(schema.orders.id, id));
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
+}
+
+export async function listOrderMessagesAction(orderId: number) {
+  if (!(await isAuthed())) throw new Error("unauthorized");
+  const { listMessagesForOrder } = await import("@/app/_lib/whatsapp/client");
+  return listMessagesForOrder(orderId);
+}
+
+export async function sendWhatsappReplyAction(orderId: number, body: string) {
+  if (!(await isAuthed())) throw new Error("unauthorized");
+  if (!waConfigured()) {
+    return { ok: false as const, error: "whatsapp_not_configured" };
+  }
+  const trimmed = body.trim();
+  if (!trimmed) return { ok: false as const, error: "empty_body" };
+  if (trimmed.length > 4096) return { ok: false as const, error: "body_too_long" };
+  const order = await findOrder(orderId);
+  if (!order) return { ok: false as const, error: "order_not_found" };
+  const result = await waSendText(order.phone, trimmed, { orderId });
+  if (!result.ok) return { ok: false as const, error: result.error };
+  revalidatePath("/admin/orders");
+  return { ok: true as const, id: result.id };
 }

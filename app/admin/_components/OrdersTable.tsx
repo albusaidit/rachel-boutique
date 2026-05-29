@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import type { OrderRow } from "@/app/_lib/db/orders-repo";
 import {
   deleteOrderAction,
+  listOrderMessagesAction,
+  sendWhatsappReplyAction,
   setOrderStatusAction,
   updateOrderShippingAction,
 } from "@/app/_lib/db/orders-actions";
@@ -56,9 +58,35 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
     shipped: "en",
     cancelled: "en",
   });
+  const [thread, setThread] = useState<
+    Array<{
+      id: number;
+      direction: "in" | "out";
+      body: string;
+      status: string;
+      createdAt: string;
+      templateName: string | null;
+      error: string | null;
+    }>
+  >([]);
+  const [replyDraft, setReplyDraft] = useState("");
+  const [replyPending, setReplyPending] = useState(false);
+
+  const refreshThread = useCallback(async (orderId: number) => {
+    try {
+      const msgs = await listOrderMessagesAction(orderId);
+      setThread(msgs);
+    } catch {
+      setThread([]);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!openOrder) return;
+    if (!openOrder) {
+      setThread([]);
+      setReplyDraft("");
+      return;
+    }
     setShipForm({
       trackingNumber: openOrder.trackingNumber ?? "",
       carrier: openOrder.carrier ?? "",
@@ -66,7 +94,34 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
     });
     const def = defaultLangFor(openOrder);
     setNotifyLang({ received: def, confirmed: def, shipped: def, cancelled: def });
-  }, [openOrder]);
+    void refreshThread(openOrder.id);
+    const t = window.setInterval(() => {
+      void refreshThread(openOrder.id);
+    }, 15000);
+    return () => window.clearInterval(t);
+  }, [openOrder, refreshThread]);
+
+  const sendReply = async (o: OrderRow) => {
+    const text = replyDraft.trim();
+    if (!text) return;
+    setReplyPending(true);
+    try {
+      const res = await sendWhatsappReplyAction(o.id, text);
+      if (!res.ok) {
+        if (res.error === "whatsapp_not_configured") {
+          push("Set WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID in Vercel to enable in-portal sending.", "error");
+        } else {
+          push(`Send failed: ${res.error}`, "error");
+        }
+        return;
+      }
+      setReplyDraft("");
+      await refreshThread(o.id);
+      push("Sent via WhatsApp", "success");
+    } finally {
+      setReplyPending(false);
+    }
+  };
 
   const saveShipping = (o: OrderRow) => {
     start(async () => {
@@ -601,6 +656,75 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                     {d.orders.shipping_save_ship}
                   </button>
                 )}
+              </div>
+            </div>
+
+            {/* WhatsApp conversation thread */}
+            <div className="bg-[var(--a-surface)] border border-[var(--a-line)] rounded-md p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
+                  WhatsApp conversation
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void refreshThread(o.id)}
+                  className="text-[11px] text-[var(--a-ink-muted)] hover:text-[var(--a-ink)]"
+                >
+                  Refresh
+                </button>
+              </div>
+              <div className="bg-[var(--a-line-soft)]/40 border border-[var(--a-line)] rounded-sm p-2 max-h-64 overflow-y-auto space-y-2">
+                {thread.length === 0 ? (
+                  <div className="text-xs text-[var(--a-ink-muted)] italic px-2 py-3 text-center">
+                    No WhatsApp messages yet. Customer replies + your sent messages will appear here.
+                  </div>
+                ) : (
+                  thread.map((m) => (
+                    <div
+                      key={m.id}
+                      className={`flex ${m.direction === "out" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[80%] text-sm rounded-md px-3 py-1.5 whitespace-pre-wrap break-words ${
+                          m.direction === "out"
+                            ? "bg-[var(--a-accent)] text-[var(--a-accent-fg)]"
+                            : "bg-[var(--a-surface)] border border-[var(--a-line)] text-[var(--a-ink)]"
+                        }`}
+                      >
+                        {m.body}
+                        <div className={`mt-0.5 text-[10px] opacity-80 ${m.direction === "out" ? "text-end" : ""}`}>
+                          {new Date(m.createdAt).toLocaleString()}
+                          {m.status === "failed" && (
+                            <span className="ms-1 text-red-200">· failed</span>
+                          )}
+                          {m.templateName && (
+                            <span className="ms-1 opacity-80">· {m.templateName}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="flex items-end gap-2">
+                <textarea
+                  value={replyDraft}
+                  onChange={(e) => setReplyDraft(e.target.value)}
+                  rows={2}
+                  placeholder="Reply to the customer on WhatsApp…"
+                  className="flex-1 border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] outline-none focus:border-[var(--a-ink)] rounded-sm resize-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => sendReply(o)}
+                  disabled={replyPending || !replyDraft.trim()}
+                  className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-4 py-2 text-sm font-semibold rounded-sm hover:opacity-90 disabled:opacity-40 self-stretch"
+                >
+                  {replyPending ? "…" : "Send"}
+                </button>
+              </div>
+              <div className="text-[10px] text-[var(--a-ink-faint)]">
+                Uses your Meta WhatsApp Cloud number. Freeform replies work while the customer's 24h session is open; otherwise an approved template is required.
               </div>
             </div>
 

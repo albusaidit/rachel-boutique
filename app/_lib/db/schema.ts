@@ -110,3 +110,19 @@ export const adminUsers = pgTable(
 
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type NewAdminUser = typeof adminUsers.$inferInsert;
+
+export const whatsappMessages = pgTable("whatsapp_messages", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id"),
+  direction: text("direction").notNull(),
+  fromPhone: text("from_phone").notNull(),
+  toPhone: text("to_phone").notNull(),
+  body: text("body").notNull(),
+  templateName: text("template_name"),
+  waMessageId: text("wa_message_id"),
+  status: text("status").notNull().default("sent"),
+  error: text("error"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type WhatsappMessage = typeof whatsappMessages.$inferSelect;
