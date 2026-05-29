@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { saveHomepageLayoutAction } from "@/app/_lib/db/actions";
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { useAdminToast } from "./AdminToast";
 import { DemoBanner, PageHeader } from "./PageHeader";
+
+function encodePreview(layout: { key: string; visible: boolean }[]): string {
+  const json = JSON.stringify(layout);
+  if (typeof window === "undefined") return "";
+  return btoa(unescape(encodeURIComponent(json)));
+}
 
 type Section = {
   key: string;
@@ -37,6 +43,21 @@ export function HomepageEditor({
       ),
     [sections, snapshot],
   );
+
+  const [previewSrc, setPreviewSrc] = useState("");
+  const [previewKey, setPreviewKey] = useState(0);
+
+  useEffect(() => {
+    const token = encodePreview(
+      sections.map((s) => ({ key: s.key, visible: s.visible })),
+    );
+    if (!token) return;
+    const t = window.setTimeout(() => {
+      setPreviewSrc(`/?preview=${token}`);
+      setPreviewKey((k) => k + 1);
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [sections]);
 
   const handleDragStart = (idx: number) => (e: React.DragEvent) => {
     setDragIndex(idx);
@@ -137,9 +158,10 @@ export function HomepageEditor({
         {!dbReady && <DemoBanner>{d.common.demo_banner}</DemoBanner>}
 
         <section className="bg-[var(--a-info-bg)] border border-[var(--a-line)] px-4 py-3 text-sm text-[var(--a-ink-soft)] rounded-md">
-          The order in this list = the order customers see on the storefront. Drag the <span aria-hidden>⋮⋮</span> handle, or use the ↑ / ↓ buttons. The eye toggle hides a section without removing it.
+          Drag the <span aria-hidden>⋮⋮</span> handle or use ↑ / ↓ to reorder. The preview on the right updates as you change things — your edits are only saved when you click Save layout.
         </section>
 
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-5">
         <section className="bg-[var(--a-surface)] border border-[var(--a-line)]">
           <ol className="divide-y divide-[var(--a-line-soft)]">
             {sections.map((s, idx) => {
@@ -219,6 +241,37 @@ export function HomepageEditor({
             })}
           </ol>
         </section>
+
+        <section className="bg-[var(--a-surface)] border border-[var(--a-line)] overflow-hidden flex flex-col">
+          <div className="px-4 py-2.5 border-b border-[var(--a-line)] flex items-center justify-between gap-2">
+            <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
+              Live preview
+            </div>
+            <a
+              href={previewSrc || "/"}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-[var(--a-ink-muted)] hover:text-[var(--a-ink)]"
+            >
+              Open in new tab ↗
+            </a>
+          </div>
+          <div className="relative bg-[var(--a-line-soft)] h-[640px]">
+            {previewSrc ? (
+              <iframe
+                key={previewKey}
+                src={previewSrc}
+                title="Storefront preview"
+                className="absolute inset-0 w-full h-full bg-white"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-sm text-[var(--a-ink-muted)]">
+                Preparing preview…
+              </div>
+            )}
+          </div>
+        </section>
+        </div>
 
         <p className="text-xs text-[var(--a-ink-muted)] px-1">
           Looking to reorder <Link href="/admin/products/order" className="underline hover:text-[var(--a-ink)]">individual products within a grid</Link>?

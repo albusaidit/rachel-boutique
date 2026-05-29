@@ -8,7 +8,12 @@ import { Story } from "./_components/Story";
 import { CartDrawer } from "./_components/CartDrawer";
 import { Footer } from "./_components/Footer";
 import { products } from "./_lib/products";
-import { getHomepageLayout, type SectionKey } from "@/app/_lib/db/homepage-layout";
+import {
+  DEFAULT_LAYOUT,
+  getHomepageLayout,
+  type SectionEntry,
+  type SectionKey,
+} from "@/app/_lib/db/homepage-layout";
 
 const newArrivals = products.filter((p) => p.tags.includes("new")).map((p) => p.id);
 const bestsellers = products.filter((p) => p.tags.includes("bestseller")).map((p) => p.id);
@@ -40,8 +45,39 @@ function renderSection(key: SectionKey) {
   }
 }
 
-export default async function BoutiquePage() {
-  const layout = await getHomepageLayout();
+function tryDecodePreview(raw: string | undefined): SectionEntry[] | null {
+  if (!raw) return null;
+  try {
+    const json = decodeURIComponent(escape(atob(raw)));
+    const parsed = JSON.parse(json);
+    if (!Array.isArray(parsed)) return null;
+    const valid = new Set(DEFAULT_LAYOUT.map((s) => s.key));
+    const seen = new Set<string>();
+    const out: SectionEntry[] = [];
+    for (const item of parsed) {
+      if (!item || typeof item !== "object") continue;
+      const obj = item as { key?: unknown; visible?: unknown };
+      if (typeof obj.key !== "string") continue;
+      if (!valid.has(obj.key as SectionKey)) continue;
+      if (seen.has(obj.key)) continue;
+      seen.add(obj.key);
+      out.push({ key: obj.key as SectionKey, visible: obj.visible !== false });
+    }
+    return out.length > 0 ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function BoutiquePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const previewRaw = typeof params.preview === "string" ? params.preview : undefined;
+  const preview = tryDecodePreview(previewRaw);
+  const layout = preview ?? (await getHomepageLayout());
   return (
     <div id="top">
       <Header />
