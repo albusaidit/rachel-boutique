@@ -72,6 +72,8 @@ export const orders = pgTable("orders", {
   confirmedAt: timestamp("confirmed_at"),
   shippedAt: timestamp("shipped_at"),
   deliveredAt: timestamp("delivered_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  cancellationReason: text("cancellation_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

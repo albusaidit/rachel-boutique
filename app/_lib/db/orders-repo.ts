@@ -29,6 +29,8 @@ export type OrderRow = {
   confirmedAt: string | null;
   shippedAt: string | null;
   deliveredAt: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -52,6 +54,8 @@ function rowToOrder(r: typeof schema.orders.$inferSelect): OrderRow {
     confirmedAt: r.confirmedAt ? r.confirmedAt.toISOString() : null,
     shippedAt: r.shippedAt ? r.shippedAt.toISOString() : null,
     deliveredAt: r.deliveredAt ? r.deliveredAt.toISOString() : null,
+    cancelledAt: r.cancelledAt ? r.cancelledAt.toISOString() : null,
+    cancellationReason: r.cancellationReason ?? null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   };

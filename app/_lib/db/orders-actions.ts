@@ -71,6 +71,7 @@ export async function createOrderAction(
 export async function setOrderStatusAction(
   id: number,
   status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled",
+  opts?: { cancellationReason?: string | null },
 ) {
   if (!(await isAuthed())) throw new Error("unauthorized");
   if (!isDbConfigured()) throw new Error("db_not_configured");
@@ -82,6 +83,13 @@ export async function setOrderStatusAction(
   if (status === "confirmed") patch.confirmedAt = now;
   if (status === "shipped") patch.shippedAt = now;
   if (status === "delivered") patch.deliveredAt = now;
+  if (status === "cancelled") {
+    patch.cancelledAt = now;
+    if (opts?.cancellationReason !== undefined) {
+      const trimmed = opts.cancellationReason?.trim() ?? "";
+      patch.cancellationReason = trimmed || null;
+    }
+  }
   await getDb()
     .update(schema.orders)
     .set(patch)

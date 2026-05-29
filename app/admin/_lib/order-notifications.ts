@@ -1,6 +1,6 @@
 import type { OrderRow } from "@/app/_lib/db/orders-repo";
 
-export type Stage = "received" | "confirmed" | "shipped";
+export type Stage = "received" | "confirmed" | "shipped" | "cancelled";
 type Lang = "ar" | "en" | "fr";
 
 function localeOf(o: OrderRow): Lang {
@@ -30,6 +30,11 @@ export function notifySubject(stage: Stage, o: OrderRow): string {
     if (lang === "ar") return `RACHÉL · تأكيد طلبك #${o.id}`;
     if (lang === "fr") return `RACHÉL · Commande #${o.id} confirmée`;
     return `RACHÉL · Order #${o.id} confirmed`;
+  }
+  if (stage === "cancelled") {
+    if (lang === "ar") return `RACHÉL · إلغاء طلبك #${o.id}`;
+    if (lang === "fr") return `RACHÉL · Commande #${o.id} annulée`;
+    return `RACHÉL · Order #${o.id} cancelled`;
   }
   if (lang === "ar") return `RACHÉL · شحن طلبك #${o.id}`;
   if (lang === "fr") return `RACHÉL · Commande #${o.id} expédiée`;
@@ -110,6 +115,39 @@ ${items}
 Total: ${total}
 
 Thank you for choosing RACHÉL. — RACHÉL`;
+  }
+
+  if (stage === "cancelled") {
+    const reason = o.cancellationReason?.trim();
+    const reasonAr = reason ? `\n\nالسبب: ${reason}` : "";
+    const reasonFr = reason ? `\n\nMotif : ${reason}` : "";
+    const reasonEn = reason ? `\n\nReason: ${reason}` : "";
+    if (lang === "ar")
+      return `مرحباً ${o.customerName} ✦
+نأسف لإبلاغك أن طلبك #${o.id} تم إلغاؤه.${reasonAr}
+
+${items}
+
+الإجمالي: ${total}
+
+إن كان هناك أي مبلغ مدفوع سيتم إعادته. للاستفسار، تواصل معنا. — RACHÉL`;
+    if (lang === "fr")
+      return `Bonjour ${o.customerName} ✦
+Nous sommes désolés de vous informer que votre commande #${o.id} a été annulée.${reasonFr}
+
+${items}
+
+Total : ${total}
+
+Tout montant payé vous sera remboursé. Contactez-nous pour toute question. — RACHÉL`;
+    return `Hello ${o.customerName} ✦
+We're sorry to let you know that your order #${o.id} has been cancelled.${reasonEn}
+
+${items}
+
+Total: ${total}
+
+Any amount paid will be refunded. Reach out to us if you have any questions. — RACHÉL`;
   }
 
   // shipped

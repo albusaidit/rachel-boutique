@@ -44,6 +44,8 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
   const [statusFilter, setStatusFilter] = useState<"all" | Status>("all");
   const [openOrder, setOpenOrder] = useState<OrderRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<OrderRow | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<OrderRow | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [shipForm, setShipForm] = useState({ trackingNumber: "", carrier: "", shippingNotes: "" });
 
   useEffect(() => {
@@ -71,6 +73,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
   };
 
   const stageOf = (o: OrderRow): Stage => {
+    if (o.status === "cancelled") return "cancelled";
     if (o.status === "shipped" || o.status === "delivered") return "shipped";
     if (o.status === "confirmed") return "confirmed";
     return "received";
@@ -116,12 +119,31 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
 
   const onChangeStatus = (o: OrderRow, status: Status) => {
     if (status === o.status) return;
+    if (status === "cancelled") {
+      setCancelReason(o.cancellationReason ?? "");
+      setCancelTarget(o);
+      return;
+    }
     start(async () => {
       try {
         await setOrderStatusAction(o.id, status);
         push("Status updated", "success");
       } catch (err) {
         push(err instanceof Error ? err.message : "Failed", "error");
+      }
+    });
+  };
+
+  const confirmCancel = (o: OrderRow) => {
+    const reason = cancelReason.trim() || null;
+    start(async () => {
+      try {
+        await setOrderStatusAction(o.id, "cancelled", { cancellationReason: reason });
+        push("Order cancelled", "success");
+        setCancelTarget(null);
+        setCancelReason("");
+      } catch (err) {
+        push(err instanceof Error ? err.message : "Cancel failed", "error");
       }
     });
   };
@@ -402,34 +424,78 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
               <StageMarker active={!!o.deliveredAt} label="Delivered" at={o.deliveredAt} />
             </div>
 
-            {/* 3-stage notify panels */}
+            {/* Cancellation banner */}
+            {o.status === "cancelled" && (
+              <div className="bg-[var(--a-danger-bg)] border border-[var(--a-danger-line)] rounded-md p-3 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-medium text-[var(--a-danger)]">Order cancelled</div>
+                  {o.cancelledAt && (
+                    <div className="text-xs text-[var(--a-ink-muted)]">{new Date(o.cancelledAt).toLocaleString()}</div>
+                  )}
+                </div>
+                {o.cancellationReason ? (
+                  <div className="mt-1 text-[var(--a-ink-soft)]">{o.cancellationReason}</div>
+                ) : (
+                  <div className="mt-1 text-xs text-[var(--a-ink-muted)] italic">No reason recorded</div>
+                )}
+              </div>
+            )}
+
+            {/* Notify panels */}
             <div className="space-y-2">
               <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
                 Notify customer
               </div>
-              <NotifyBlock
-                s="received"
-                title="1 · Order received"
-                hint="Acknowledge that the order is in. Send this once you see a new pending order."
-              />
-              <NotifyBlock
-                s="confirmed"
-                title="2 · Order confirmed"
-                hint={
-                  stage === "received"
-                    ? "Mark the order Confirmed first, then send this message."
-                    : "Tell the customer the order is being prepared."
-                }
-              />
-              <NotifyBlock
-                s="shipped"
-                title="3 · Shipping details"
-                hint={
-                  o.trackingNumber || o.carrier
-                    ? "Tracking is filled in below. Send the customer the details."
-                    : "Fill in tracking number / carrier below, then send."
-                }
-              />
+              {o.status !== "cancelled" && (
+                <>
+                  <NotifyBlock
+                    s="received"
+                    title="1 · Order received"
+                    hint="Acknowledge that the order is in. Send this once you see a new pending order."
+                  />
+                  <NotifyBlock
+                    s="confirmed"
+                    title="2 · Order confirmed"
+                    hint={
+                      stage === "received"
+                        ? "Mark the order Confirmed first, then send this message."
+                        : "Tell the customer the order is being prepared."
+                    }
+                  />
+                  <NotifyBlock
+                    s="shipped"
+                    title="3 · Shipping details"
+                    hint={
+                      o.trackingNumber || o.carrier
+                        ? "Tracking is filled in below. Send the customer the details."
+                        : "Fill in tracking number / carrier below, then send."
+                    }
+                  />
+                </>
+              )}
+              {o.status === "cancelled" && (
+                <NotifyBlock
+                  s="cancelled"
+                  title="Cancellation notice"
+                  hint={
+                    o.cancellationReason
+                      ? "The reason you saved will be included in the message."
+                      : "Edit the order to add a reason if you want it in the message."
+                  }
+                />
+              )}
+              {o.status !== "cancelled" && (
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => onChangeStatus(o, "cancelled")}
+                    disabled={pending}
+                    className="px-3 py-1.5 text-xs font-medium border border-[var(--a-danger-line)] text-[var(--a-danger)] rounded-sm hover:bg-[var(--a-danger-bg)] disabled:opacity-40"
+                  >
+                    Cancel this order…
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Shipping form */}
@@ -530,6 +596,57 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
           );
         })()}
       </SideDrawer>
+
+      <Modal
+        open={!!cancelTarget}
+        onClose={() => {
+          setCancelTarget(null);
+          setCancelReason("");
+        }}
+        title="Cancel order"
+        size="sm"
+      >
+        {cancelTarget && (
+          <div className="space-y-4">
+            <p className="text-sm">
+              Cancel order <span className="font-medium">#{cancelTarget.id}</span> from {cancelTarget.customerName}? The reason below will be saved and can be included in the cancellation message you send the customer.
+            </p>
+            <label className="block">
+              <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
+                Reason (optional)
+              </span>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={4}
+                autoFocus
+                placeholder="e.g. Out of stock, customer requested, payment not confirmed…"
+                className="mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] outline-none focus:border-[var(--a-ink)] rounded-sm resize-none"
+              />
+            </label>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--a-line)]">
+              <button
+                type="button"
+                onClick={() => {
+                  setCancelTarget(null);
+                  setCancelReason("");
+                }}
+                className="px-4 py-2 text-sm font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)]"
+              >
+                Keep order
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => confirmCancel(cancelTarget)}
+                className="bg-[var(--a-danger)] text-white px-5 py-2 text-sm font-semibold rounded-sm hover:opacity-90 disabled:opacity-40"
+              >
+                {pending ? "…" : "Cancel order"}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Modal
         open={!!confirmDelete}
