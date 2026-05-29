@@ -74,6 +74,8 @@ export const orders = pgTable("orders", {
   deliveredAt: timestamp("delivered_at"),
   cancelledAt: timestamp("cancelled_at"),
   cancellationReason: text("cancellation_reason"),
+  deletedAt: timestamp("deleted_at"),
+  deletedBy: integer("deleted_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -126,3 +128,19 @@ export const whatsappMessages = pgTable("whatsapp_messages", {
 });
 
 export type WhatsappMessage = typeof whatsappMessages.$inferSelect;
+
+export const auditEvents = pgTable("audit_events", {
+  id: serial("id").primaryKey(),
+  actorId: integer("actor_id"),
+  actorUsername: text("actor_username"),
+  actorRole: text("actor_role"),
+  action: text("action").notNull(),
+  targetType: text("target_type").notNull(),
+  targetId: text("target_id").notNull(),
+  before: jsonb("before"),
+  after: jsonb("after"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type AuditEvent = typeof auditEvents.$inferSelect;

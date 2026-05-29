@@ -1,5 +1,5 @@
 import "server-only";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, isNull } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "./client";
 
 export type OrderItem = {
@@ -61,25 +61,30 @@ function rowToOrder(r: typeof schema.orders.$inferSelect): OrderRow {
   };
 }
 
-export async function listOrders(): Promise<OrderRow[]> {
+export async function listOrders(opts?: { includeDeleted?: boolean }): Promise<OrderRow[]> {
   if (!isDbConfigured()) return [];
   try {
-    const rows = await getDb()
+    const base = getDb()
       .select()
       .from(schema.orders)
       .orderBy(desc(schema.orders.createdAt));
+    const rows = opts?.includeDeleted
+      ? await base
+      : await base.where(isNull(schema.orders.deletedAt));
     return rows.map(rowToOrder);
   } catch {
     return [];
   }
 }
 
-export async function findOrder(id: number): Promise<OrderRow | null> {
+export async function findOrder(id: number, opts?: { includeDeleted?: boolean }): Promise<OrderRow | null> {
   if (!isDbConfigured()) return null;
   const rows = await getDb()
     .select()
     .from(schema.orders)
     .where(eq(schema.orders.id, id))
     .limit(1);
-  return rows[0] ? rowToOrder(rows[0]) : null;
+  if (!rows[0]) return null;
+  if (!opts?.includeDeleted && rows[0].deletedAt) return null;
+  return rowToOrder(rows[0]);
 }

@@ -5,9 +5,16 @@ import { eq } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "./client";
 import type { OrderItem, OrderRow } from "./orders-repo";
 import { findOrder } from "./orders-repo";
-import { isAuthed } from "@/app/admin/_lib/auth";
+import { getCurrentUser, isAuthed } from "@/app/admin/_lib/auth";
 import { isConfigured as waConfigured, sendText as waSendText } from "@/app/_lib/whatsapp/client";
 import { defaultLangFor, notifyBody, type Stage } from "@/app/admin/_lib/order-notifications";
+import { logAuditEvent, type Actor } from "./audit-repo";
+
+async function currentActor(): Promise<Actor> {
+  const user = await getCurrentUser();
+  if (!user) return { id: null, username: null, role: null };
+  return { id: user.id, username: user.username, role: user.role };
+}
 
 async function autoSendStage(orderId: number, stage: Stage): Promise<void> {
   if (!waConfigured()) return;
@@ -83,8 +90,23 @@ export async function createOrderAction(
     })
     .returning({ id: schema.orders.id });
 
+  void logAuditEvent({
+    actor: { id: null, username: "storefront", role: "customer" },
+    action: "order.created",
+    targetType: "order",
+    targetId: String(row.id),
+    after: {
+      customerName,
+      phone,
+      city,
+      subtotal: input.subtotal,
+      itemCount: safeItems.length,
+    },
+  });
+
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
 
   // Best-effort auto-confirmation to the customer. Silent if WA isn't wired up.
   void autoSendStage(row.id, "received");
@@ -99,6 +121,8 @@ export async function setOrderStatusAction(
 ) {
   if (!(await isAuthed())) throw new Error("unauthorized");
   if (!isDbConfigured()) throw new Error("db_not_configured");
+  const actor = await currentActor();
+  const before = await findOrder(id);
   const now = new Date();
   const patch: Partial<typeof schema.orders.$inferInsert> = {
     status,
@@ -118,8 +142,19 @@ export async function setOrderStatusAction(
     .update(schema.orders)
     .set(patch)
     .where(eq(schema.orders.id, id));
+
+  void logAuditEvent({
+    actor,
+    action: "order.status_changed",
+    targetType: "order",
+    targetId: String(id),
+    before: before ? { status: before.status, cancellationReason: before.cancellationReason } : null,
+    after: { status, cancellationReason: opts?.cancellationReason ?? before?.cancellationReason ?? null },
+  });
+
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
 
   // Auto-notify customer per stage, best effort.
   if (status === "confirmed") void autoSendStage(id, "confirmed");
@@ -137,6 +172,8 @@ export async function updateOrderShippingAction(
 ) {
   if (!(await isAuthed())) throw new Error("unauthorized");
   if (!isDbConfigured()) throw new Error("db_not_configured");
+  const actor = await currentActor();
+  const before = await findOrder(id);
   const trim = (v: string | null | undefined) => {
     if (v === null || v === undefined) return undefined;
     const t = v.trim();
@@ -152,16 +189,83 @@ export async function updateOrderShippingAction(
     .update(schema.orders)
     .set(update)
     .where(eq(schema.orders.id, id));
+
+  void logAuditEvent({
+    actor,
+    action: "order.shipping_updated",
+    targetType: "order",
+    targetId: String(id),
+    before: before
+      ? {
+          carrier: before.carrier,
+          trackingNumber: before.trackingNumber,
+          shippingNotes: before.shippingNotes,
+        }
+      : null,
+    after: {
+      carrier: update.carrier,
+      trackingNumber: update.trackingNumber,
+      shippingNotes: update.shippingNotes,
+    },
+  });
+
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
 }
 
 export async function deleteOrderAction(id: number) {
   if (!(await isAuthed())) throw new Error("unauthorized");
   if (!isDbConfigured()) throw new Error("db_not_configured");
-  await getDb().delete(schema.orders).where(eq(schema.orders.id, id));
+  const actor = await currentActor();
+  const before = await findOrder(id);
+  const now = new Date();
+  await getDb()
+    .update(schema.orders)
+    .set({ deletedAt: now, deletedBy: actor.id, updatedAt: now })
+    .where(eq(schema.orders.id, id));
+
+  void logAuditEvent({
+    actor,
+    action: "order.deleted",
+    targetType: "order",
+    targetId: String(id),
+    before: before
+      ? {
+          status: before.status,
+          customerName: before.customerName,
+          subtotal: before.subtotal,
+          currency: before.currency,
+        }
+      : null,
+    after: null,
+  });
+
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
+}
+
+export async function restoreOrderAction(id: number) {
+  if (!(await isAuthed())) throw new Error("unauthorized");
+  if (!isDbConfigured()) throw new Error("db_not_configured");
+  const actor = await currentActor();
+  if (actor.role === "fulfillment") throw new Error("forbidden");
+  await getDb()
+    .update(schema.orders)
+    .set({ deletedAt: null, deletedBy: null, updatedAt: new Date() })
+    .where(eq(schema.orders.id, id));
+
+  void logAuditEvent({
+    actor,
+    action: "order.restored",
+    targetType: "order",
+    targetId: String(id),
+  });
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+  revalidatePath("/admin/audit");
 }
 
 export async function listOrderMessagesAction(orderId: number) {
@@ -180,8 +284,17 @@ export async function sendWhatsappReplyAction(orderId: number, body: string) {
   if (trimmed.length > 4096) return { ok: false as const, error: "body_too_long" };
   const order = await findOrder(orderId);
   if (!order) return { ok: false as const, error: "order_not_found" };
+  const actor = await currentActor();
   const result = await waSendText(order.phone, trimmed, { orderId });
   if (!result.ok) return { ok: false as const, error: result.error };
+  void logAuditEvent({
+    actor,
+    action: "order.whatsapp_sent",
+    targetType: "order",
+    targetId: String(orderId),
+    metadata: { preview: trimmed.slice(0, 160) },
+  });
   revalidatePath("/admin/orders");
+  revalidatePath("/admin/audit");
   return { ok: true as const, id: result.id };
 }

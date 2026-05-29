@@ -47,6 +47,7 @@ export function MobileNav({
         { href: "/admin/orders", label: d.nav.orders },
         { href: "/admin/customers", label: d.nav.customers },
         { href: "/admin/team", label: d.nav.team },
+        { href: "/admin/audit", label: d.nav.audit },
         { href: "/admin/settings", label: d.nav.settings },
       ];
 

@@ -19,6 +19,7 @@ export function Sidebar({ role }: { role?: "owner" | "admin" | "fulfillment" | "
     { href: "/admin/orders", label: d.nav.orders, icon: "▥" },
     { href: "/admin/customers", label: d.nav.customers, icon: "◔" },
     { href: "/admin/team", label: d.nav.team, icon: "◉" },
+    { href: "/admin/audit", label: d.nav.audit, icon: "▦" },
     { href: "/admin/settings", label: d.nav.settings, icon: "◇" },
   ];
 
