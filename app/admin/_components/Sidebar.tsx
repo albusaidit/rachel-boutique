@@ -5,11 +5,13 @@ import { usePathname } from "next/navigation";
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { LogoutButton } from "./LogoutButton";
 
-export function Sidebar() {
+export function Sidebar({ role }: { role?: "owner" | "admin" | "fulfillment" | "viewer" }) {
   const { d } = useAdminLocale();
   const pathname = usePathname();
 
-  const NAV = [
+  const isFulfillment = role === "fulfillment";
+
+  const FULL_NAV = [
     { href: "/admin", label: d.nav.dashboard, icon: "▢" },
     { href: "/admin/homepage", label: d.nav.homepage, icon: "❖" },
     { href: "/admin/products", label: d.nav.products, icon: "▤" },
@@ -19,6 +21,12 @@ export function Sidebar() {
     { href: "/admin/team", label: d.nav.team, icon: "◉" },
     { href: "/admin/settings", label: d.nav.settings, icon: "◇" },
   ];
+
+  const FULFILLMENT_NAV = [
+    { href: "/admin/orders", label: d.nav.orders, icon: "▥" },
+  ];
+
+  const NAV = isFulfillment ? FULFILLMENT_NAV : FULL_NAV;
 
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);

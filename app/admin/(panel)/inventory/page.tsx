@@ -1,9 +1,11 @@
 import { listProducts } from "@/app/_lib/db/products-repo";
 import { isDbConfigured } from "@/app/_lib/db/client";
 import { categoryTree } from "@/app/(storefront)/_lib/products";
+import { requireFullAdmin } from "../../_lib/auth";
 import { InventoryView } from "../../_components/InventoryView";
 
 export default async function AdminInventoryPage() {
+  await requireFullAdmin();
   const products = await listProducts();
   const rows = products.map((p) => ({
     id: p.id,

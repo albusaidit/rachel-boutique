@@ -17,27 +17,32 @@ type Item = {
 export function CommandPalette({
   open,
   onClose,
+  role,
 }: {
   open: boolean;
   onClose: () => void;
+  role?: "owner" | "admin" | "fulfillment" | "viewer";
 }) {
   const router = useRouter();
+  const isFulfillment = role === "fulfillment";
   const { d, locale } = useAdminLocale();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const items: Item[] = useMemo(() => {
-    const navItems: Item[] = [
-      { id: "p-dash", group: "pages", label: d.nav.dashboard, action: () => router.push("/admin") },
-      { id: "p-homepage", group: "pages", label: d.nav.homepage, action: () => router.push("/admin/homepage") },
-      { id: "p-products", group: "pages", label: d.nav.products, action: () => router.push("/admin/products") },
-      { id: "p-inventory", group: "pages", label: d.nav.inventory, action: () => router.push("/admin/inventory") },
-      { id: "p-orders", group: "pages", label: d.nav.orders, action: () => router.push("/admin/orders") },
-      { id: "p-customers", group: "pages", label: d.nav.customers, action: () => router.push("/admin/customers") },
-      { id: "p-team", group: "pages", label: d.nav.team, action: () => router.push("/admin/team") },
-      { id: "p-settings", group: "pages", label: d.nav.settings, action: () => router.push("/admin/settings") },
-    ];
+    const navItems: Item[] = isFulfillment
+      ? [{ id: "p-orders", group: "pages", label: d.nav.orders, action: () => router.push("/admin/orders") }]
+      : [
+          { id: "p-dash", group: "pages", label: d.nav.dashboard, action: () => router.push("/admin") },
+          { id: "p-homepage", group: "pages", label: d.nav.homepage, action: () => router.push("/admin/homepage") },
+          { id: "p-products", group: "pages", label: d.nav.products, action: () => router.push("/admin/products") },
+          { id: "p-inventory", group: "pages", label: d.nav.inventory, action: () => router.push("/admin/inventory") },
+          { id: "p-orders", group: "pages", label: d.nav.orders, action: () => router.push("/admin/orders") },
+          { id: "p-customers", group: "pages", label: d.nav.customers, action: () => router.push("/admin/customers") },
+          { id: "p-team", group: "pages", label: d.nav.team, action: () => router.push("/admin/team") },
+          { id: "p-settings", group: "pages", label: d.nav.settings, action: () => router.push("/admin/settings") },
+        ];
 
     const productItems: Item[] = products.map((p) => ({
       id: `prod-${p.id}`,
@@ -74,8 +79,12 @@ export function CommandPalette({
       },
     ];
 
+    if (isFulfillment) {
+      const trimmedActions = actions.filter((a) => a.id === "a-logout" || a.id === "a-storefront");
+      return [...navItems, ...trimmedActions];
+    }
     return [...navItems, ...productItems, ...actions];
-  }, [router, locale, d]);
+  }, [router, locale, d, isFulfillment]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

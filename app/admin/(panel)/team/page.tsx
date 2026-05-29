@@ -1,9 +1,10 @@
 import { listAdminUsers } from "@/app/_lib/db/users-repo";
 import { isDbConfigured } from "@/app/_lib/db/client";
-import { getCurrentUserId } from "@/app/admin/_lib/auth";
+import { getCurrentUserId, requireFullAdmin } from "@/app/admin/_lib/auth";
 import { TeamManager } from "../../_components/TeamManager";
 
 export default async function AdminTeamPage() {
+  await requireFullAdmin();
   const dbReady = isDbConfigured();
   const users = dbReady ? await listAdminUsers() : [];
   const currentIdRaw = await getCurrentUserId();

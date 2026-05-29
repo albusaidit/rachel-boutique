@@ -1,6 +1,7 @@
 import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import {
   authenticate,
   countAdminUsers,
@@ -69,6 +70,20 @@ export async function getCurrentUser(): Promise<AdminUser | null> {
   const numeric = Number(id);
   if (!Number.isFinite(numeric)) return null;
   return findAdminUserById(numeric);
+}
+
+/** Require any signed-in user (any role). Redirects to login if not. */
+export async function requireAuthed(): Promise<AdminUser> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/admin/login");
+  return user;
+}
+
+/** Require owner or admin. Fulfillment users bounce to /admin/orders, viewers stay on dashboard. */
+export async function requireFullAdmin(): Promise<AdminUser> {
+  const user = await requireAuthed();
+  if (user.role === "fulfillment") redirect("/admin/orders");
+  return user;
 }
 
 export async function loginWithCredentials(

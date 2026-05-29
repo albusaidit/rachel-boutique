@@ -3,9 +3,11 @@ import { listProducts } from "@/app/_lib/db/products-repo";
 import { listOrders } from "@/app/_lib/db/orders-repo";
 import { isDbConfigured } from "@/app/_lib/db/client";
 import { getSetupStatus } from "@/app/_lib/db/setup-status";
+import { requireFullAdmin } from "../_lib/auth";
 import { Dashboard } from "../_components/Dashboard";
 
 export default async function AdminDashboardPage() {
+  await requireFullAdmin();
   const [products, orders, setupStatus] = await Promise.all([
     listProducts(),
     listOrders(),

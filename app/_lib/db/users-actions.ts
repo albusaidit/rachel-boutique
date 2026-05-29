@@ -8,6 +8,7 @@ import {
   setAdminUserActive,
   setAdminUserRole,
   updateAdminUserPassword,
+  ADMIN_ROLES,
   type AdminUser,
 } from "./users-repo";
 import { getCurrentUserId, isAuthed } from "@/app/admin/_lib/auth";
@@ -22,7 +23,7 @@ function str(formData: FormData, key: string): string {
 }
 
 function isRole(v: string): v is AdminUser["role"] {
-  return v === "owner" || v === "admin" || v === "viewer";
+  return (ADMIN_ROLES as readonly string[]).includes(v);
 }
 
 export async function createAdminUserAction(formData: FormData) {

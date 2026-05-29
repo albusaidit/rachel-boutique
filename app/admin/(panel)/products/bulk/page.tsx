@@ -1,9 +1,11 @@
 import { listProducts } from "@/app/_lib/db/products-repo";
 import { isDbConfigured } from "@/app/_lib/db/client";
 import { categoryTree } from "@/app/(storefront)/_lib/products";
+import { requireFullAdmin } from "../../../_lib/auth";
 import { BulkEditTable } from "../../../_components/BulkEditTable";
 
 export default async function AdminProductsBulkPage() {
+  await requireFullAdmin();
   const products = await listProducts();
   const dbReady = isDbConfigured();
 

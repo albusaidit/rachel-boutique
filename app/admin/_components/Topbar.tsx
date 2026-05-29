@@ -7,7 +7,13 @@ import { MobileNav } from "./MobileNav";
 
 const LOCALE_LABEL: Record<Locale, string> = { ar: "AR", en: "EN", fr: "FR" };
 
-export function Topbar({ dbReady = false }: { dbReady?: boolean }) {
+export function Topbar({
+  dbReady = false,
+  role,
+}: {
+  dbReady?: boolean;
+  role?: "owner" | "admin" | "fulfillment" | "viewer";
+}) {
   const { d, locale, setLocale, theme, toggleTheme } = useAdminLocale();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -130,8 +136,8 @@ export function Topbar({ dbReady = false }: { dbReady?: boolean }) {
           </button>
         </div>
       </header>
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-      <MobileNav open={navOpen} onClose={() => setNavOpen(false)} />
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} role={role} />
+      <MobileNav open={navOpen} onClose={() => setNavOpen(false)} role={role} />
     </>
   );
 }

@@ -1,8 +1,10 @@
 import { isDbConfigured } from "@/app/_lib/db/client";
 import { categoryTree } from "@/app/(storefront)/_lib/products";
+import { requireFullAdmin } from "../../../_lib/auth";
 import { ProductCreate } from "../../../_components/ProductCreate";
 
-export default function AdminProductNewPage() {
+export default async function AdminProductNewPage() {
+  await requireFullAdmin();
   const categories = categoryTree.map((c) => ({
     key: c.key,
     ar: c.ar,

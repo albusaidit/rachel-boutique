@@ -15,7 +15,7 @@ import { DemoBanner, PageHeader } from "./PageHeader";
 import { Modal } from "./Modal";
 
 type Role = AdminUser["role"];
-const ROLES: Role[] = ["owner", "admin", "viewer"];
+const ROLES: Role[] = ["owner", "admin", "fulfillment", "viewer"];
 
 type ActiveModal =
   | { kind: "none" }
@@ -43,8 +43,12 @@ export function TeamManager({
     setPwInput("");
   };
 
-  const roleLabel = (r: Role) =>
-    r === "owner" ? d.team.role_owner : r === "admin" ? d.team.role_admin : d.team.role_viewer;
+  const roleLabel = (r: Role) => {
+    if (r === "owner") return d.team.role_owner;
+    if (r === "admin") return d.team.role_admin;
+    if (r === "fulfillment") return d.team.role_fulfillment;
+    return d.team.role_viewer;
+  };
 
   const onCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

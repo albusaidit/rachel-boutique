@@ -7,9 +7,18 @@ import { useEffect } from "react";
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { LogoutButton } from "./LogoutButton";
 
-export function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function MobileNav({
+  open,
+  onClose,
+  role,
+}: {
+  open: boolean;
+  onClose: () => void;
+  role?: "owner" | "admin" | "fulfillment" | "viewer";
+}) {
   const { d, locale } = useAdminLocale();
   const pathname = usePathname();
+  const isFulfillment = role === "fulfillment";
 
   useEffect(() => {
     if (open) {
@@ -28,16 +37,18 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  const NAV = [
-    { href: "/admin", label: d.nav.dashboard },
-    { href: "/admin/homepage", label: d.nav.homepage },
-    { href: "/admin/products", label: d.nav.products },
-    { href: "/admin/inventory", label: d.nav.inventory },
-    { href: "/admin/orders", label: d.nav.orders },
-    { href: "/admin/customers", label: d.nav.customers },
-    { href: "/admin/team", label: d.nav.team },
-    { href: "/admin/settings", label: d.nav.settings },
-  ];
+  const NAV = isFulfillment
+    ? [{ href: "/admin/orders", label: d.nav.orders }]
+    : [
+        { href: "/admin", label: d.nav.dashboard },
+        { href: "/admin/homepage", label: d.nav.homepage },
+        { href: "/admin/products", label: d.nav.products },
+        { href: "/admin/inventory", label: d.nav.inventory },
+        { href: "/admin/orders", label: d.nav.orders },
+        { href: "/admin/customers", label: d.nav.customers },
+        { href: "/admin/team", label: d.nav.team },
+        { href: "/admin/settings", label: d.nav.settings },
+      ];
 
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);

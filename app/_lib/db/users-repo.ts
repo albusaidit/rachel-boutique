@@ -3,12 +3,15 @@ import { eq, asc, desc } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "./client";
 import { hashPassword, verifyPassword } from "./password";
 
+export const ADMIN_ROLES = ["owner", "admin", "fulfillment", "viewer"] as const;
+export type AdminRole = (typeof ADMIN_ROLES)[number];
+
 export type AdminUser = {
   id: number;
   username: string;
   name: string | null;
   email: string | null;
-  role: "owner" | "admin" | "viewer";
+  role: AdminRole;
   active: boolean;
   lastLoginAt: string | null;
   createdAt: string;

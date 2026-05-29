@@ -1,5 +1,6 @@
 import { listCustomers } from "@/app/_lib/db/customers-repo";
 import { isDbConfigured } from "@/app/_lib/db/client";
+import { requireFullAdmin } from "../../_lib/auth";
 import { CustomersTable } from "../../_components/CustomersTable";
 
 const MOCK_NAMES_AR = ["سارة", "نور", "ريم", "هدى", "فاطمة", "ميساء", "لينا", "دانة", "أسماء", "ريان", "غدير", "شذى"];
@@ -36,6 +37,7 @@ function buildMockCustomers() {
 }
 
 export default async function AdminCustomersPage() {
+  await requireFullAdmin();
   const dbReady = isDbConfigured();
   const customers = dbReady ? await listCustomers() : buildMockCustomers();
   return <CustomersTable customers={customers} dbReady={dbReady} />;
