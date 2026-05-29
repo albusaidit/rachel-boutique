@@ -485,7 +485,7 @@ export function ProductsTable({
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[800px]">
-              <thead className="bg-[var(--a-line-soft)] text-[10px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] sticky top-14 z-10">
+              <thead className="bg-[var(--a-line-soft)] text-[10px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] border-b border-[var(--a-line)]">
                 <tr>
                   <th className="px-4 py-3 w-10 text-start">
                     <input
