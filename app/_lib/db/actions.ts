@@ -169,15 +169,26 @@ export async function bulkDeleteProductsAction(ids: string[]) {
   return { count: ids.length };
 }
 
-export async function quickUpdateProductAction(
-  id: string,
-  patch: { price?: number; stock?: number; compareAt?: number | null },
-) {
-  await ensureAuth();
-  ensureDb();
+export type ProductPatch = {
+  nameEn?: string;
+  nameAr?: string;
+  nameFr?: string | null;
+  price?: number;
+  stock?: number;
+  compareAt?: number | null;
+  category?: string;
+  subcategory?: string;
+  tags?: string[];
+};
+
+function buildProductUpdate(patch: ProductPatch): Partial<typeof schema.products.$inferInsert> {
   const update: Partial<typeof schema.products.$inferInsert> = {
     updatedAt: new Date(),
   };
+  if (typeof patch.nameEn === "string" && patch.nameEn.trim()) update.nameEn = patch.nameEn.trim();
+  if (typeof patch.nameAr === "string" && patch.nameAr.trim()) update.nameAr = patch.nameAr.trim();
+  if (patch.nameFr === null) update.nameFr = null;
+  else if (typeof patch.nameFr === "string") update.nameFr = patch.nameFr.trim() || null;
   if (typeof patch.price === "number" && Number.isFinite(patch.price)) {
     update.price = Math.max(0, Math.floor(patch.price));
   }
@@ -189,12 +200,44 @@ export async function quickUpdateProductAction(
   } else if (typeof patch.compareAt === "number" && Number.isFinite(patch.compareAt)) {
     update.compareAt = Math.max(0, Math.floor(patch.compareAt));
   }
+  if (typeof patch.category === "string" && patch.category.trim()) update.category = patch.category.trim();
+  if (typeof patch.subcategory === "string" && patch.subcategory.trim()) update.subcategory = patch.subcategory.trim();
+  if (Array.isArray(patch.tags)) update.tags = patch.tags.map((t) => String(t).trim()).filter(Boolean);
+  return update;
+}
+
+export async function quickUpdateProductAction(id: string, patch: ProductPatch) {
+  await ensureAuth();
+  ensureDb();
+  const update = buildProductUpdate(patch);
   await getDb().update(schema.products).set(update).where(eq(schema.products.id, id));
   revalidatePath("/admin/products");
   revalidatePath("/admin/inventory");
   revalidatePath("/admin");
   revalidatePath("/");
   return { ok: true };
+}
+
+export async function bulkUpdateProductsAction(
+  patches: Array<{ id: string; patch: ProductPatch }>,
+) {
+  await ensureAuth();
+  ensureDb();
+  if (patches.length === 0) return { count: 0 };
+  const db = getDb();
+  let count = 0;
+  for (const { id, patch } of patches) {
+    const update = buildProductUpdate(patch);
+    if (Object.keys(update).length <= 1) continue;
+    await db.update(schema.products).set(update).where(eq(schema.products.id, id));
+    count += 1;
+  }
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/products/bulk");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { count };
 }
 
 export async function duplicateProductAction(id: string) {

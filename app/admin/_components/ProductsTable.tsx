@@ -297,6 +297,16 @@ export function ProductsTable({
         subtitle={d.products.subtitle(rows.length)}
         actions={
           <>
+            <Link
+              href="/admin/products/bulk"
+              className="border border-[var(--a-line)] bg-[var(--a-surface)] px-4 py-2 text-sm font-medium text-[var(--a-ink-soft)] hover:border-[var(--a-ink-faint)] hover:text-[var(--a-ink)] transition-colors flex items-center gap-2 rounded-sm"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+              </svg>
+              Bulk edit
+            </Link>
             <button
               onClick={() => exportCsv(rows, categories, locale)}
               className="border border-[var(--a-line)] bg-[var(--a-surface)] px-4 py-2 text-xs tracking-[0.2em] uppercase font-medium text-[var(--a-ink-soft)] hover:border-[var(--a-ink-faint)] hover:text-[var(--a-ink)] transition-colors flex items-center gap-2"
