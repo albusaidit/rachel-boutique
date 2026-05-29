@@ -65,9 +65,9 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
           carrier: shipForm.carrier,
           shippingNotes: shipForm.shippingNotes,
         });
-        push("Shipping details saved", "success");
+        push(d.orders.toast_shipping_saved, "success");
       } catch (err) {
-        push(err instanceof Error ? err.message : "Save failed", "error");
+        push(err instanceof Error ? err.message : d.orders.toast_failed, "error");
       }
     });
   };
@@ -92,9 +92,9 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
   const copyBody = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      push("Message copied to clipboard", "success");
+      push(d.orders.toast_copied, "success");
     } catch {
-      push("Copy failed", "error");
+      push(d.orders.toast_copy_failed, "error");
     }
   };
 
@@ -127,9 +127,9 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
     start(async () => {
       try {
         await setOrderStatusAction(o.id, status);
-        push("Status updated", "success");
+        push(d.orders.toast_status_updated, "success");
       } catch (err) {
-        push(err instanceof Error ? err.message : "Failed", "error");
+        push(err instanceof Error ? err.message : d.orders.toast_failed, "error");
       }
     });
   };
@@ -139,11 +139,11 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
     start(async () => {
       try {
         await setOrderStatusAction(o.id, "cancelled", { cancellationReason: reason });
-        push("Order cancelled", "success");
+        push(d.orders.toast_cancelled, "success");
         setCancelTarget(null);
         setCancelReason("");
       } catch (err) {
-        push(err instanceof Error ? err.message : "Cancel failed", "error");
+        push(err instanceof Error ? err.message : d.orders.toast_failed, "error");
       }
     });
   };
@@ -152,10 +152,10 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
     start(async () => {
       try {
         await deleteOrderAction(o.id);
-        push(`Order #${o.id} deleted`, "success");
+        push(d.orders.toast_deleted(o.id), "success");
         setConfirmDelete(null);
       } catch (err) {
-        push(err instanceof Error ? err.message : "Failed", "error");
+        push(err instanceof Error ? err.message : d.orders.toast_failed, "error");
       }
     });
   };
@@ -188,12 +188,12 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
             <thead className="border-b border-[var(--a-line)] bg-[var(--a-line-soft)]">
               <tr className="text-[10px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
                 <th className="text-start px-4 py-3">#</th>
-                <th className="text-start px-4 py-3">Customer</th>
-                <th className="text-start px-4 py-3">City</th>
-                <th className="text-start px-4 py-3">Items</th>
-                <th className="text-end px-4 py-3">Total</th>
-                <th className="text-start px-4 py-3">Status</th>
-                <th className="text-start px-4 py-3">Date</th>
+                <th className="text-start px-4 py-3">{d.orders.col_customer}</th>
+                <th className="text-start px-4 py-3">{d.orders.col_city}</th>
+                <th className="text-start px-4 py-3">{d.orders.col_items}</th>
+                <th className="text-end px-4 py-3">{d.orders.col_total}</th>
+                <th className="text-start px-4 py-3">{d.orders.col_status}</th>
+                <th className="text-start px-4 py-3">{d.orders.col_date}</th>
                 <th className="text-end px-4 py-3" />
               </tr>
             </thead>
@@ -201,7 +201,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-sm text-[var(--a-ink-muted)]">
-                    No orders match this filter.
+                    {d.orders.none_match}
                   </td>
                 </tr>
               ) : (
@@ -223,7 +223,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                     </td>
                     <td className="px-4 py-3 text-[var(--a-ink-soft)]">{o.city}</td>
                     <td className="px-4 py-3 text-[var(--a-ink-soft)]">
-                      {o.items.length} item{o.items.length === 1 ? "" : "s"}
+                      {d.orders.drawer_items(o.items.length)}
                     </td>
                     <td className="px-4 py-3 text-end num font-medium">
                       {o.currency} {o.subtotal.toLocaleString(numLocale)}
@@ -252,7 +252,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                           onClick={() => setOpenOrder(o)}
                           className="px-2 py-1 text-xs border border-[var(--a-line)] text-[var(--a-ink-soft)] hover:bg-[var(--a-surface)] rounded-sm"
                         >
-                          View
+                          {d.orders.view}
                         </button>
                         <a
                           href={`https://api.whatsapp.com/send?phone=${o.phone.replace(/[^0-9]/g, "")}`}
@@ -260,7 +260,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                           rel="noreferrer"
                           className="px-2 py-1 text-xs border border-[var(--a-line)] text-[var(--a-ink-soft)] hover:bg-[var(--a-surface)] rounded-sm"
                         >
-                          WhatsApp
+                          {d.orders.whatsapp}
                         </a>
                         {o.status === "pending" && (
                           <button
@@ -269,7 +269,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                             disabled={pending}
                             className="px-2 py-1 text-xs border border-[var(--a-line)] text-[var(--a-success)] hover:bg-[var(--a-success-bg)] rounded-sm disabled:opacity-30"
                           >
-                            Confirm
+                            {d.orders.confirm_action}
                           </button>
                         )}
                         <button
@@ -278,7 +278,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                           disabled={pending}
                           className="px-2 py-1 text-xs border border-[var(--a-danger-line)] text-[var(--a-danger)] hover:bg-[var(--a-danger-bg)] rounded-sm disabled:opacity-30"
                         >
-                          Delete
+                          {d.orders.delete}
                         </button>
                       </div>
                     </td>
@@ -347,24 +347,24 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                     rel="noreferrer"
                     className="px-3 py-1.5 text-xs font-medium bg-[var(--a-accent)] text-[var(--a-accent-fg)] rounded-sm hover:opacity-90"
                   >
-                    Send via WhatsApp
+                    {d.orders.send_whatsapp}
                   </a>
                   {n.mailto ? (
                     <a
                       href={n.mailto}
                       className="px-3 py-1.5 text-xs font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)]"
                     >
-                      Send email
+                      {d.orders.send_email}
                     </a>
                   ) : (
-                    <span className="px-3 py-1.5 text-xs text-[var(--a-ink-faint)] italic">No email on file</span>
+                    <span className="px-3 py-1.5 text-xs text-[var(--a-ink-faint)] italic">{d.orders.no_email}</span>
                   )}
                   <button
                     type="button"
                     onClick={() => copyBody(n.body)}
                     className="px-3 py-1.5 text-xs font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)]"
                   >
-                    Copy text
+                    {d.orders.copy_text}
                   </button>
                 </div>
               </div>
@@ -376,7 +376,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
             {/* Customer + status row */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)]">Customer</div>
+                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)]">{d.orders.drawer_customer}</div>
                 <div className="mt-1 font-medium">{o.customerName}</div>
                 <a
                   href={whatsappLink(o.phone, "")}
@@ -395,9 +395,9 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                 <div className="text-xs text-[var(--a-ink-muted)]">{o.city}</div>
               </div>
               <div>
-                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)]">Order</div>
+                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)]">{d.orders.drawer_order}</div>
                 <div className="mt-1">{new Date(o.createdAt).toLocaleString()}</div>
-                <div className="text-xs text-[var(--a-ink-muted)] mt-1">Status</div>
+                <div className="text-xs text-[var(--a-ink-muted)] mt-1">{d.orders.col_status}</div>
                 <select
                   value={o.status}
                   disabled={pending}
@@ -415,20 +415,20 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
 
             {/* Stage timeline */}
             <div className="border-t border-b border-[var(--a-line)] py-3 flex items-center gap-2">
-              <StageMarker active={true} label="Received" at={o.createdAt} />
+              <StageMarker active={true} label={d.orders.stage_received} at={o.createdAt} />
               <div className={`h-px flex-1 ${o.confirmedAt ? "bg-[var(--a-accent)]" : "bg-[var(--a-line)]"}`} />
-              <StageMarker active={!!o.confirmedAt} label="Confirmed" at={o.confirmedAt} />
+              <StageMarker active={!!o.confirmedAt} label={d.orders.stage_confirmed} at={o.confirmedAt} />
               <div className={`h-px flex-1 ${o.shippedAt ? "bg-[var(--a-accent)]" : "bg-[var(--a-line)]"}`} />
-              <StageMarker active={!!o.shippedAt} label="Shipped" at={o.shippedAt} />
+              <StageMarker active={!!o.shippedAt} label={d.orders.stage_shipped} at={o.shippedAt} />
               <div className={`h-px flex-1 ${o.deliveredAt ? "bg-[var(--a-accent)]" : "bg-[var(--a-line)]"}`} />
-              <StageMarker active={!!o.deliveredAt} label="Delivered" at={o.deliveredAt} />
+              <StageMarker active={!!o.deliveredAt} label={d.orders.stage_delivered} at={o.deliveredAt} />
             </div>
 
             {/* Cancellation banner */}
             {o.status === "cancelled" && (
               <div className="bg-[var(--a-danger-bg)] border border-[var(--a-danger-line)] rounded-md p-3 text-sm">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="font-medium text-[var(--a-danger)]">Order cancelled</div>
+                  <div className="font-medium text-[var(--a-danger)]">{d.orders.cancelled_banner}</div>
                   {o.cancelledAt && (
                     <div className="text-xs text-[var(--a-ink-muted)]">{new Date(o.cancelledAt).toLocaleString()}</div>
                   )}
@@ -436,7 +436,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                 {o.cancellationReason ? (
                   <div className="mt-1 text-[var(--a-ink-soft)]">{o.cancellationReason}</div>
                 ) : (
-                  <div className="mt-1 text-xs text-[var(--a-ink-muted)] italic">No reason recorded</div>
+                  <div className="mt-1 text-xs text-[var(--a-ink-muted)] italic">{d.orders.no_reason}</div>
                 )}
               </div>
             )}
@@ -444,31 +444,31 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
             {/* Notify panels */}
             <div className="space-y-2">
               <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
-                Notify customer
+                {d.orders.notify_heading}
               </div>
               {o.status !== "cancelled" && (
                 <>
                   <NotifyBlock
                     s="received"
-                    title="1 · Order received"
-                    hint="Acknowledge that the order is in. Send this once you see a new pending order."
+                    title={d.orders.notify_1_title}
+                    hint={d.orders.notify_1_hint}
                   />
                   <NotifyBlock
                     s="confirmed"
-                    title="2 · Order confirmed"
+                    title={d.orders.notify_2_title}
                     hint={
                       stage === "received"
-                        ? "Mark the order Confirmed first, then send this message."
-                        : "Tell the customer the order is being prepared."
+                        ? d.orders.notify_2_hint_pending
+                        : d.orders.notify_2_hint_ready
                     }
                   />
                   <NotifyBlock
                     s="shipped"
-                    title="3 · Shipping details"
+                    title={d.orders.notify_3_title}
                     hint={
                       o.trackingNumber || o.carrier
-                        ? "Tracking is filled in below. Send the customer the details."
-                        : "Fill in tracking number / carrier below, then send."
+                        ? d.orders.notify_3_hint_filled
+                        : d.orders.notify_3_hint_empty
                     }
                   />
                 </>
@@ -476,11 +476,11 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
               {o.status === "cancelled" && (
                 <NotifyBlock
                   s="cancelled"
-                  title="Cancellation notice"
+                  title={d.orders.notify_cancel_title}
                   hint={
                     o.cancellationReason
-                      ? "The reason you saved will be included in the message."
-                      : "Edit the order to add a reason if you want it in the message."
+                      ? d.orders.notify_cancel_hint_with
+                      : d.orders.notify_cancel_hint_without
                   }
                 />
               )}
@@ -492,7 +492,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                     disabled={pending}
                     className="px-3 py-1.5 text-xs font-medium border border-[var(--a-danger-line)] text-[var(--a-danger)] rounded-sm hover:bg-[var(--a-danger-bg)] disabled:opacity-40"
                   >
-                    Cancel this order…
+                    {d.orders.cancel_button}
                   </button>
                 </div>
               )}
@@ -501,33 +501,33 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
             {/* Shipping form */}
             <div className="bg-[var(--a-surface)] border border-[var(--a-line)] rounded-md p-4 space-y-3">
               <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
-                Shipping details
+                {d.orders.shipping_heading}
               </div>
               <label className="block">
-                <span className="text-[11px] text-[var(--a-ink-muted)]">Carrier</span>
+                <span className="text-[11px] text-[var(--a-ink-muted)]">{d.orders.shipping_carrier}</span>
                 <input
                   value={shipForm.carrier}
                   onChange={(e) => setShipForm((s) => ({ ...s, carrier: e.target.value }))}
-                  placeholder="e.g. Aramex, DHL, Local"
+                  placeholder={d.orders.shipping_carrier_ph}
                   className="mt-1 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] outline-none focus:border-[var(--a-ink)] rounded-sm"
                 />
               </label>
               <label className="block">
-                <span className="text-[11px] text-[var(--a-ink-muted)]">Tracking number</span>
+                <span className="text-[11px] text-[var(--a-ink-muted)]">{d.orders.shipping_tracking}</span>
                 <input
                   value={shipForm.trackingNumber}
                   onChange={(e) => setShipForm((s) => ({ ...s, trackingNumber: e.target.value }))}
-                  placeholder="e.g. 1234567890"
+                  placeholder={d.orders.shipping_tracking_ph}
                   className="mt-1 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] outline-none focus:border-[var(--a-ink)] rounded-sm font-mono"
                 />
               </label>
               <label className="block">
-                <span className="text-[11px] text-[var(--a-ink-muted)]">Notes (optional)</span>
+                <span className="text-[11px] text-[var(--a-ink-muted)]">{d.orders.shipping_notes}</span>
                 <textarea
                   value={shipForm.shippingNotes}
                   onChange={(e) => setShipForm((s) => ({ ...s, shippingNotes: e.target.value }))}
                   rows={2}
-                  placeholder="ETA, delivery instructions, etc."
+                  placeholder={d.orders.shipping_notes_ph}
                   className="mt-1 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] outline-none focus:border-[var(--a-ink)] rounded-sm resize-none"
                 />
               </label>
@@ -538,7 +538,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                   disabled={pending}
                   className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-4 py-1.5 text-xs font-semibold rounded-sm hover:opacity-90 disabled:opacity-40"
                 >
-                  {pending ? "Saving…" : "Save shipping info"}
+                  {pending ? "…" : d.orders.shipping_save}
                 </button>
                 {o.status !== "shipped" && o.status !== "delivered" && (
                   <button
@@ -550,7 +550,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                     disabled={pending}
                     className="px-4 py-1.5 text-xs font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)] disabled:opacity-40"
                   >
-                    Save + mark Shipped
+                    {d.orders.shipping_save_ship}
                   </button>
                 )}
               </div>
@@ -559,7 +559,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
             {/* Items */}
             <div className="border-t border-[var(--a-line)] pt-4">
               <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] mb-2">
-                Items ({o.items.length})
+                {d.orders.drawer_items(o.items.length)}
               </div>
               <ul className="space-y-2">
                 {o.items.map((it, i) => (
@@ -581,14 +581,14 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
               </ul>
             </div>
             <div className="flex items-center justify-between border-t border-[var(--a-line)] pt-3 text-base font-semibold">
-              <span>Total</span>
+              <span>{d.orders.drawer_total}</span>
               <span className="num">
                 {o.currency} {o.subtotal.toLocaleString(numLocale)}
               </span>
             </div>
             {o.notes && (
               <div className="border-t border-[var(--a-line)] pt-3 text-[var(--a-ink-soft)]">
-                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] mb-1">Notes</div>
+                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] mb-1">{d.orders.drawer_notes}</div>
                 {o.notes}
               </div>
             )}
@@ -603,24 +603,24 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
           setCancelTarget(null);
           setCancelReason("");
         }}
-        title="Cancel order"
+        title={d.orders.cancel_modal_title}
         size="sm"
       >
         {cancelTarget && (
           <div className="space-y-4">
             <p className="text-sm">
-              Cancel order <span className="font-medium">#{cancelTarget.id}</span> from {cancelTarget.customerName}? The reason below will be saved and can be included in the cancellation message you send the customer.
+              {d.orders.cancel_modal_body(cancelTarget.id, cancelTarget.customerName)}
             </p>
             <label className="block">
               <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
-                Reason (optional)
+                {d.orders.cancel_modal_reason}
               </span>
               <textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
                 rows={4}
                 autoFocus
-                placeholder="e.g. Out of stock, customer requested, payment not confirmed…"
+                placeholder={d.orders.cancel_modal_reason_ph}
                 className="mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] outline-none focus:border-[var(--a-ink)] rounded-sm resize-none"
               />
             </label>
@@ -633,7 +633,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                 }}
                 className="px-4 py-2 text-sm font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)]"
               >
-                Keep order
+                {d.orders.cancel_modal_keep}
               </button>
               <button
                 type="button"
@@ -641,7 +641,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                 onClick={() => confirmCancel(cancelTarget)}
                 className="bg-[var(--a-danger)] text-white px-5 py-2 text-sm font-semibold rounded-sm hover:opacity-90 disabled:opacity-40"
               >
-                {pending ? "…" : "Cancel order"}
+                {pending ? "…" : d.orders.cancel_modal_confirm}
               </button>
             </div>
           </div>
@@ -651,13 +651,13 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
       <Modal
         open={!!confirmDelete}
         onClose={() => setConfirmDelete(null)}
-        title="Delete order"
+        title={d.orders.delete_modal_title}
         size="sm"
       >
         {confirmDelete && (
           <div className="space-y-4">
             <p className="text-sm">
-              Permanently delete order #{confirmDelete.id} from {confirmDelete.customerName}? This cannot be undone.
+              {d.orders.delete_modal_body(confirmDelete.id, confirmDelete.customerName)}
             </p>
             <div className="flex justify-end gap-2 pt-2 border-t border-[var(--a-line)]">
               <button
@@ -673,7 +673,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                 onClick={() => onDelete(confirmDelete)}
                 className="bg-[var(--a-danger)] text-white px-5 py-2 text-sm font-semibold rounded-sm hover:opacity-90 disabled:opacity-40"
               >
-                {pending ? "…" : "Delete"}
+                {pending ? "…" : d.orders.delete}
               </button>
             </div>
           </div>
