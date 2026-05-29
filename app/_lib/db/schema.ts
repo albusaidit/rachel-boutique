@@ -48,6 +48,7 @@ export const orders = pgTable("orders", {
   status: text("status").notNull().default("pending"),
   customerName: text("customer_name").notNull(),
   phone: text("phone").notNull(),
+  email: text("email"),
   city: text("city").notNull(),
   locale: text("locale").notNull().default("ar"),
   items: jsonb("items")
@@ -65,6 +66,12 @@ export const orders = pgTable("orders", {
   subtotal: integer("subtotal").notNull(),
   currency: text("currency").notNull().default("MAD"),
   notes: text("notes"),
+  trackingNumber: text("tracking_number"),
+  carrier: text("carrier"),
+  shippingNotes: text("shipping_notes"),
+  confirmedAt: timestamp("confirmed_at"),
+  shippedAt: timestamp("shipped_at"),
+  deliveredAt: timestamp("delivered_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

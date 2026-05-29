@@ -1,11 +1,19 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import type { OrderRow } from "@/app/_lib/db/orders-repo";
 import {
   deleteOrderAction,
   setOrderStatusAction,
+  updateOrderShippingAction,
 } from "@/app/_lib/db/orders-actions";
+import {
+  mailtoLink,
+  notifyBody,
+  notifySubject,
+  whatsappLink,
+  type Stage,
+} from "../_lib/order-notifications";
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { useAdminToast } from "./AdminToast";
 import { Modal } from "./Modal";
@@ -36,6 +44,56 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
   const [statusFilter, setStatusFilter] = useState<"all" | Status>("all");
   const [openOrder, setOpenOrder] = useState<OrderRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<OrderRow | null>(null);
+  const [shipForm, setShipForm] = useState({ trackingNumber: "", carrier: "", shippingNotes: "" });
+
+  useEffect(() => {
+    if (!openOrder) return;
+    setShipForm({
+      trackingNumber: openOrder.trackingNumber ?? "",
+      carrier: openOrder.carrier ?? "",
+      shippingNotes: openOrder.shippingNotes ?? "",
+    });
+  }, [openOrder]);
+
+  const saveShipping = (o: OrderRow) => {
+    start(async () => {
+      try {
+        await updateOrderShippingAction(o.id, {
+          trackingNumber: shipForm.trackingNumber,
+          carrier: shipForm.carrier,
+          shippingNotes: shipForm.shippingNotes,
+        });
+        push("Shipping details saved", "success");
+      } catch (err) {
+        push(err instanceof Error ? err.message : "Save failed", "error");
+      }
+    });
+  };
+
+  const stageOf = (o: OrderRow): Stage => {
+    if (o.status === "shipped" || o.status === "delivered") return "shipped";
+    if (o.status === "confirmed") return "confirmed";
+    return "received";
+  };
+
+  const buildNotifyHrefs = (o: OrderRow, stage: Stage) => {
+    const subject = notifySubject(stage, o);
+    const body = notifyBody(stage, o);
+    return {
+      whatsapp: whatsappLink(o.phone, body),
+      mailto: o.email ? mailtoLink(o.email, subject, body) : null,
+      body,
+    };
+  };
+
+  const copyBody = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      push("Message copied to clipboard", "success");
+    } catch {
+      push("Copy failed", "error");
+    }
+  };
 
   const numLocale = locale === "ar" ? "ar-SA" : locale === "fr" ? "fr-FR" : "en-US";
 
@@ -241,35 +299,88 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
           )
         }
       >
-        {openOrder && (
+        {openOrder && (() => {
+          const o = openOrder;
+          const stage = stageOf(o);
+          const notify = (s: Stage) => buildNotifyHrefs(o, s);
+          const StageMarker = ({ active, label, at }: { active: boolean; label: string; at: string | null }) => (
+            <div className="flex-1 text-center">
+              <div className={`mx-auto w-2.5 h-2.5 rounded-full ${active ? "bg-[var(--a-accent)]" : "bg-[var(--a-line)]"}`} />
+              <div className={`mt-1 text-[10px] tracking-[0.15em] uppercase ${active ? "text-[var(--a-ink)] font-medium" : "text-[var(--a-ink-faint)]"}`}>{label}</div>
+              {at && <div className="text-[10px] text-[var(--a-ink-faint)]">{new Date(at).toLocaleDateString()}</div>}
+            </div>
+          );
+          const NotifyBlock = ({ s, title, hint }: { s: Stage; title: string; hint: string }) => {
+            const n = notify(s);
+            return (
+              <div className="bg-[var(--a-line-soft)]/50 border border-[var(--a-line)] rounded-md p-3">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <div className="text-sm font-medium">{title}</div>
+                </div>
+                <div className="text-xs text-[var(--a-ink-muted)] mb-2.5">{hint}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  <a
+                    href={n.whatsapp}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 text-xs font-medium bg-[var(--a-accent)] text-[var(--a-accent-fg)] rounded-sm hover:opacity-90"
+                  >
+                    Send via WhatsApp
+                  </a>
+                  {n.mailto ? (
+                    <a
+                      href={n.mailto}
+                      className="px-3 py-1.5 text-xs font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)]"
+                    >
+                      Send email
+                    </a>
+                  ) : (
+                    <span className="px-3 py-1.5 text-xs text-[var(--a-ink-faint)] italic">No email on file</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => copyBody(n.body)}
+                    className="px-3 py-1.5 text-xs font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)]"
+                  >
+                    Copy text
+                  </button>
+                </div>
+              </div>
+            );
+          };
+
+          return (
           <div className="space-y-5 text-sm">
+            {/* Customer + status row */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)]">
-                  Customer
-                </div>
-                <div className="mt-1 font-medium">{openOrder.customerName}</div>
+                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)]">Customer</div>
+                <div className="mt-1 font-medium">{o.customerName}</div>
                 <a
-                  href={`https://api.whatsapp.com/send?phone=${openOrder.phone.replace(/[^0-9]/g, "")}`}
+                  href={whatsappLink(o.phone, "")}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs text-[var(--a-accent)] hover:underline block"
+                  className="text-xs text-[var(--a-accent)] hover:underline block num"
+                  dir="ltr"
                 >
-                  {openOrder.phone}
+                  {o.phone}
                 </a>
-                <div className="text-xs text-[var(--a-ink-muted)]">{openOrder.city}</div>
+                {o.email && (
+                  <a href={`mailto:${o.email}`} className="text-xs text-[var(--a-accent)] hover:underline block break-all">
+                    {o.email}
+                  </a>
+                )}
+                <div className="text-xs text-[var(--a-ink-muted)]">{o.city}</div>
               </div>
               <div>
-                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)]">
-                  Order
-                </div>
-                <div className="mt-1">{new Date(openOrder.createdAt).toLocaleString()}</div>
+                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)]">Order</div>
+                <div className="mt-1">{new Date(o.createdAt).toLocaleString()}</div>
                 <div className="text-xs text-[var(--a-ink-muted)] mt-1">Status</div>
                 <select
-                  value={openOrder.status}
+                  value={o.status}
                   disabled={pending}
-                  onChange={(e) => onChangeStatus(openOrder, e.target.value as Status)}
-                  className={`mt-0.5 px-2 py-1 text-xs rounded-sm border-0 ${STATUS_TONE[openOrder.status as Status] || ""}`}
+                  onChange={(e) => onChangeStatus(o, e.target.value as Status)}
+                  className={`mt-0.5 px-2 py-1 text-xs rounded-sm border-0 ${STATUS_TONE[o.status as Status] || ""}`}
                 >
                   {STATUSES.map((s) => (
                     <option key={s} value={s}>
@@ -279,12 +390,113 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                 </select>
               </div>
             </div>
+
+            {/* Stage timeline */}
+            <div className="border-t border-b border-[var(--a-line)] py-3 flex items-center gap-2">
+              <StageMarker active={true} label="Received" at={o.createdAt} />
+              <div className={`h-px flex-1 ${o.confirmedAt ? "bg-[var(--a-accent)]" : "bg-[var(--a-line)]"}`} />
+              <StageMarker active={!!o.confirmedAt} label="Confirmed" at={o.confirmedAt} />
+              <div className={`h-px flex-1 ${o.shippedAt ? "bg-[var(--a-accent)]" : "bg-[var(--a-line)]"}`} />
+              <StageMarker active={!!o.shippedAt} label="Shipped" at={o.shippedAt} />
+              <div className={`h-px flex-1 ${o.deliveredAt ? "bg-[var(--a-accent)]" : "bg-[var(--a-line)]"}`} />
+              <StageMarker active={!!o.deliveredAt} label="Delivered" at={o.deliveredAt} />
+            </div>
+
+            {/* 3-stage notify panels */}
+            <div className="space-y-2">
+              <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
+                Notify customer
+              </div>
+              <NotifyBlock
+                s="received"
+                title="1 · Order received"
+                hint="Acknowledge that the order is in. Send this once you see a new pending order."
+              />
+              <NotifyBlock
+                s="confirmed"
+                title="2 · Order confirmed"
+                hint={
+                  stage === "received"
+                    ? "Mark the order Confirmed first, then send this message."
+                    : "Tell the customer the order is being prepared."
+                }
+              />
+              <NotifyBlock
+                s="shipped"
+                title="3 · Shipping details"
+                hint={
+                  o.trackingNumber || o.carrier
+                    ? "Tracking is filled in below. Send the customer the details."
+                    : "Fill in tracking number / carrier below, then send."
+                }
+              />
+            </div>
+
+            {/* Shipping form */}
+            <div className="bg-[var(--a-surface)] border border-[var(--a-line)] rounded-md p-4 space-y-3">
+              <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
+                Shipping details
+              </div>
+              <label className="block">
+                <span className="text-[11px] text-[var(--a-ink-muted)]">Carrier</span>
+                <input
+                  value={shipForm.carrier}
+                  onChange={(e) => setShipForm((s) => ({ ...s, carrier: e.target.value }))}
+                  placeholder="e.g. Aramex, DHL, Local"
+                  className="mt-1 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] outline-none focus:border-[var(--a-ink)] rounded-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[11px] text-[var(--a-ink-muted)]">Tracking number</span>
+                <input
+                  value={shipForm.trackingNumber}
+                  onChange={(e) => setShipForm((s) => ({ ...s, trackingNumber: e.target.value }))}
+                  placeholder="e.g. 1234567890"
+                  className="mt-1 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] outline-none focus:border-[var(--a-ink)] rounded-sm font-mono"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[11px] text-[var(--a-ink-muted)]">Notes (optional)</span>
+                <textarea
+                  value={shipForm.shippingNotes}
+                  onChange={(e) => setShipForm((s) => ({ ...s, shippingNotes: e.target.value }))}
+                  rows={2}
+                  placeholder="ETA, delivery instructions, etc."
+                  className="mt-1 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] outline-none focus:border-[var(--a-ink)] rounded-sm resize-none"
+                />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => saveShipping(o)}
+                  disabled={pending}
+                  className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-4 py-1.5 text-xs font-semibold rounded-sm hover:opacity-90 disabled:opacity-40"
+                >
+                  {pending ? "Saving…" : "Save shipping info"}
+                </button>
+                {o.status !== "shipped" && o.status !== "delivered" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      saveShipping(o);
+                      onChangeStatus(o, "shipped");
+                    }}
+                    disabled={pending}
+                    className="px-4 py-1.5 text-xs font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)] disabled:opacity-40"
+                  >
+                    Save + mark Shipped
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Items */}
             <div className="border-t border-[var(--a-line)] pt-4">
               <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] mb-2">
-                Items ({openOrder.items.length})
+                Items ({o.items.length})
               </div>
               <ul className="space-y-2">
-                {openOrder.items.map((it, i) => (
+                {o.items.map((it, i) => (
                   <li
                     key={i}
                     className="flex items-center justify-between gap-3 border-b border-[var(--a-line-soft)] pb-2 last:border-b-0"
@@ -296,7 +508,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                       </div>
                     </div>
                     <div className="num text-end">
-                      {openOrder.currency} {(it.unitPrice * it.qty).toLocaleString(numLocale)}
+                      {o.currency} {(it.unitPrice * it.qty).toLocaleString(numLocale)}
                     </div>
                   </li>
                 ))}
@@ -305,19 +517,18 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
             <div className="flex items-center justify-between border-t border-[var(--a-line)] pt-3 text-base font-semibold">
               <span>Total</span>
               <span className="num">
-                {openOrder.currency} {openOrder.subtotal.toLocaleString(numLocale)}
+                {o.currency} {o.subtotal.toLocaleString(numLocale)}
               </span>
             </div>
-            {openOrder.notes && (
+            {o.notes && (
               <div className="border-t border-[var(--a-line)] pt-3 text-[var(--a-ink-soft)]">
-                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] mb-1">
-                  Notes
-                </div>
-                {openOrder.notes}
+                <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] mb-1">Notes</div>
+                {o.notes}
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
       </SideDrawer>
 
       <Modal

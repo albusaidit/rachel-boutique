@@ -58,6 +58,7 @@ export function CartDrawer() {
   const [stage, setStage] = useState<"cart" | "checkout">("cart");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
 
   useEffect(() => {
@@ -88,6 +89,7 @@ export function CartDrawer() {
       await createOrderAction({
         customerName: name,
         phone,
+        email: email.trim() || undefined,
         city,
         locale,
         currency: d.product.currency,
@@ -301,6 +303,23 @@ export function CartDrawer() {
                       placeholder={d.cart.placeholder_phone}
                       dir="ltr"
                       inputMode="tel"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] tracking-[0.25em] uppercase text-[var(--ink-muted)] mb-2 font-medium">
+                      {d.cart.label_email ?? "Email"}{" "}
+                      <span className="opacity-60 normal-case tracking-normal">
+                        ({d.cart.label_optional ?? "optional"})
+                      </span>
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full border border-[var(--line)] px-4 py-3 text-sm outline-none focus:border-[var(--ink)]"
+                      placeholder="you@example.com"
+                      inputMode="email"
+                      dir="ltr"
                     />
                   </div>
                   <div>

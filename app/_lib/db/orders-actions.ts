@@ -9,6 +9,7 @@ import { isAuthed } from "@/app/admin/_lib/auth";
 export type CreateOrderInput = {
   customerName: string;
   phone: string;
+  email?: string;
   city: string;
   locale: string;
   items: OrderItem[];
@@ -44,12 +45,15 @@ export async function createOrderAction(
     }));
   if (safeItems.length === 0) return { ok: false, error: "empty_cart" };
 
+  const email = input.email?.trim() || null;
+
   const [row] = await getDb()
     .insert(schema.orders)
     .values({
       status: "pending",
       customerName,
       phone,
+      email,
       city,
       locale: input.locale.slice(0, 8),
       items: safeItems,
@@ -70,9 +74,46 @@ export async function setOrderStatusAction(
 ) {
   if (!(await isAuthed())) throw new Error("unauthorized");
   if (!isDbConfigured()) throw new Error("db_not_configured");
+  const now = new Date();
+  const patch: Partial<typeof schema.orders.$inferInsert> = {
+    status,
+    updatedAt: now,
+  };
+  if (status === "confirmed") patch.confirmedAt = now;
+  if (status === "shipped") patch.shippedAt = now;
+  if (status === "delivered") patch.deliveredAt = now;
   await getDb()
     .update(schema.orders)
-    .set({ status, updatedAt: new Date() })
+    .set(patch)
+    .where(eq(schema.orders.id, id));
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+}
+
+export async function updateOrderShippingAction(
+  id: number,
+  patch: {
+    trackingNumber?: string | null;
+    carrier?: string | null;
+    shippingNotes?: string | null;
+  },
+) {
+  if (!(await isAuthed())) throw new Error("unauthorized");
+  if (!isDbConfigured()) throw new Error("db_not_configured");
+  const trim = (v: string | null | undefined) => {
+    if (v === null || v === undefined) return undefined;
+    const t = v.trim();
+    return t || null;
+  };
+  const update: Partial<typeof schema.orders.$inferInsert> = {
+    updatedAt: new Date(),
+  };
+  if (patch.trackingNumber !== undefined) update.trackingNumber = trim(patch.trackingNumber);
+  if (patch.carrier !== undefined) update.carrier = trim(patch.carrier);
+  if (patch.shippingNotes !== undefined) update.shippingNotes = trim(patch.shippingNotes);
+  await getDb()
+    .update(schema.orders)
+    .set(update)
     .where(eq(schema.orders.id, id));
   revalidatePath("/admin/orders");
   revalidatePath("/admin");

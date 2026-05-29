@@ -16,12 +16,19 @@ export type OrderRow = {
   status: string;
   customerName: string;
   phone: string;
+  email: string | null;
   city: string;
   locale: string;
   items: OrderItem[];
   subtotal: number;
   currency: string;
   notes: string | null;
+  trackingNumber: string | null;
+  carrier: string | null;
+  shippingNotes: string | null;
+  confirmedAt: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -32,12 +39,19 @@ function rowToOrder(r: typeof schema.orders.$inferSelect): OrderRow {
     status: r.status,
     customerName: r.customerName,
     phone: r.phone,
+    email: r.email ?? null,
     city: r.city,
     locale: r.locale,
     items: r.items as OrderItem[],
     subtotal: r.subtotal,
     currency: r.currency,
     notes: r.notes ?? null,
+    trackingNumber: r.trackingNumber ?? null,
+    carrier: r.carrier ?? null,
+    shippingNotes: r.shippingNotes ?? null,
+    confirmedAt: r.confirmedAt ? r.confirmedAt.toISOString() : null,
+    shippedAt: r.shippedAt ? r.shippedAt.toISOString() : null,
+    deliveredAt: r.deliveredAt ? r.deliveredAt.toISOString() : null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   };
