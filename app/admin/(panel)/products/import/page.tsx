@@ -32,7 +32,7 @@ export default async function AdminProductsImportPage() {
     key: c.key,
     en: c.en,
     ar: c.ar,
-    subcategories: c.subcategories.map((s) => ({ key: s.key, en: s.en })),
+    subcategories: c.subcategories.map((s) => ({ key: s.key, en: s.en, ar: s.ar, fr: s.fr })),
   }));
 
   return <ProductImporter current={current} categories={categories} dbReady={dbReady} />;
