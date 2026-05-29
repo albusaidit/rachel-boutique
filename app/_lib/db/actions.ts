@@ -218,6 +218,24 @@ export async function quickUpdateProductAction(id: string, patch: ProductPatch) 
   return { ok: true };
 }
 
+export async function reorderProductsAction(orderedIds: string[]) {
+  await ensureAuth();
+  ensureDb();
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) return { count: 0 };
+  const db = getDb();
+  for (let i = 0; i < orderedIds.length; i += 1) {
+    await db
+      .update(schema.products)
+      .set({ displayOrder: i, updatedAt: new Date() })
+      .where(eq(schema.products.id, orderedIds[i]));
+  }
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/products/order");
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { count: orderedIds.length };
+}
+
 export async function bulkUpdateProductsAction(
   patches: Array<{ id: string; patch: ProductPatch }>,
 ) {

@@ -30,6 +30,7 @@ export const products = pgTable(
     subcategory: text("subcategory").notNull(),
     tags: jsonb("tags").$type<string[]>().notNull(),
     stock: integer("stock").notNull().default(0),
+    displayOrder: integer("display_order").notNull().default(0),
     archivedAt: timestamp("archived_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

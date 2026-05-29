@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, desc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "./client";
 import {
   products as staticProducts,
@@ -35,7 +35,7 @@ export async function listProducts(): Promise<Product[]> {
     const rows = await getDb()
       .select()
       .from(schema.products)
-      .orderBy(desc(schema.products.createdAt));
+      .orderBy(asc(schema.products.displayOrder), asc(schema.products.nameEn));
     if (rows.length === 0) return staticProducts;
     return rows.map(rowToProduct);
   } catch (err) {
