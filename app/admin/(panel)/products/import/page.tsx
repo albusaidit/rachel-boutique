@@ -31,7 +31,8 @@ export default async function AdminProductsImportPage() {
   const categories = categoryTree.map((c) => ({
     key: c.key,
     en: c.en,
-    subcategories: c.subcategories.map((s) => s.key),
+    ar: c.ar,
+    subcategories: c.subcategories.map((s) => ({ key: s.key, en: s.en })),
   }));
 
   return <ProductImporter current={current} categories={categories} dbReady={dbReady} />;

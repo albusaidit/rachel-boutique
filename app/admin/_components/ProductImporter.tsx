@@ -11,25 +11,7 @@ import {
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { useAdminToast } from "./AdminToast";
 import { DemoBanner, PageHeader } from "./PageHeader";
-
-type CurrentRow = {
-  id: string;
-  slug: string;
-  nameEn: string;
-  nameAr: string;
-  nameFr: string;
-  descEn: string;
-  descAr: string;
-  descFr: string;
-  price: number;
-  compareAt: number | null;
-  stock: number;
-  category: string;
-  subcategory: string;
-  sizes: string;
-  tags: string;
-  images: string;
-};
+import { downloadProTemplate, type CategoryRef, type CurrentRow } from "../_lib/product-template";
 
 const COLUMNS = [
   "id",
@@ -119,7 +101,7 @@ export function ProductImporter({
   dbReady = false,
 }: {
   current: CurrentRow[];
-  categories: { key: string; en: string; subcategories: string[] }[];
+  categories: CategoryRef[];
   dbReady?: boolean;
 }) {
   const { d } = useAdminLocale();
@@ -138,59 +120,16 @@ export function ProductImporter({
   const [dragOver, setDragOver] = useState(false);
 
   const downloadTemplate = (mode: "current" | "blank") => {
-    const ws_data: (string | number | null)[][] = [
-      [...COLUMNS],
-    ];
-    if (mode === "current") {
-      current.forEach((r) => {
-        ws_data.push([
-          r.id,
-          r.slug,
-          r.nameEn,
-          r.nameAr,
-          r.nameFr,
-          r.descEn,
-          r.descAr,
-          r.descFr,
-          r.price,
-          r.compareAt,
-          r.stock,
-          r.category,
-          r.subcategory,
-          r.sizes,
-          r.tags,
-          r.images,
-        ]);
-      });
-    } else {
-      // Add one example row so they know what shape to fill
-      ws_data.push([
-        "p-example-01",
-        "example-slug",
-        "Example product",
-        "منتج تجريبي",
-        "Produit exemple",
-        "English description.",
-        "وصف بالعربية.",
-        "Description en français.",
-        290,
-        null,
-        10,
-        categories[0]?.key ?? "clothing",
-        categories[0]?.subcategories[0] ?? "tunics",
-        "S, M, L",
-        "new, bestseller",
-        "https://example.com/image1.jpg | https://example.com/image2.jpg",
-      ]);
-    }
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    XLSX.utils.book_append_sheet(wb, ws, "Products");
-    const fileName =
+    const rows = mode === "current" ? current : [];
+    const filename =
       mode === "current"
         ? `rachel-products-${new Date().toISOString().slice(0, 10)}.xlsx`
         : "rachel-products-template.xlsx";
-    XLSX.writeFile(wb, fileName);
+    try {
+      downloadProTemplate(rows, categories, filename);
+    } catch (err) {
+      push(err instanceof Error ? err.message : "Template download failed", "error");
+    }
   };
 
   const parseFile = async (file: File) => {
@@ -272,7 +211,7 @@ export function ProductImporter({
         <section className="bg-[var(--a-surface)] border border-[var(--a-line)] p-5 space-y-3">
           <h2 className="text-sm font-semibold tracking-wide">1 · Get the spreadsheet</h2>
           <p className="text-sm text-[var(--a-ink-soft)]">
-            Open it in Excel or Google Sheets. The first row is column headers (don't rename). Each subsequent row is one product. Use the row&apos;s <code className="bg-[var(--a-line-soft)] px-1 py-0.5 rounded font-mono text-xs">id</code> to match an existing product — if the ID already exists, the row updates; if it&apos;s new, the row creates a new product.
+            The download is a styled, multi-sheet workbook (Excel / Google Sheets): <b>Instructions</b>, <b>Products</b>, <b>Categories</b>, <b>Tags</b>, <b>Sizes</b>, <b>Columns reference</b>. Frozen headers, auto-filter, colour-coded required vs optional columns, and a styled example row at the top so you can see the shape.
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -285,14 +224,14 @@ export function ProductImporter({
                 <path d="m7 10 5 5 5-5" strokeLinejoin="round" />
                 <path d="M12 15V3" />
               </svg>
-              Download current catalog (.xlsx)
+              Download workbook with current catalog
             </button>
             <button
               type="button"
               onClick={() => downloadTemplate("blank")}
               className="px-4 py-2 text-sm font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] hover:bg-[var(--a-line-soft)] rounded-sm"
             >
-              Download blank template
+              Download empty pro template
             </button>
           </div>
           <details className="text-xs text-[var(--a-ink-muted)] mt-2">
