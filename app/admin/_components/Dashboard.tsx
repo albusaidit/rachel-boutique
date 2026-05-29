@@ -23,13 +23,40 @@ type TopProduct = {
   price: number;
   image: string;
   stock: number;
+  sold: number;
 };
 
 type ActivityItem =
-  | { kind: "added"; name: { ar: string; en: string; fr?: string }; when: string }
+  | { kind: "order"; label: string; when: string }
   | { kind: "low"; name: { ar: string; en: string; fr?: string }; qty: number; when: string }
-  | { kind: "sale"; name: { ar: string; en: string; fr?: string }; when: string }
-  | { kind: "limited"; name: { ar: string; en: string; fr?: string }; when: string };
+  | { kind: "sale"; name: { ar: string; en: string; fr?: string }; when: string };
+
+type PendingOrder = {
+  id: number;
+  customerName: string;
+  phone: string;
+  city: string;
+  subtotal: number;
+  currency: string;
+  itemCount: number;
+  createdAt: string;
+};
+
+type LowStockItem = {
+  id: string;
+  name: { ar: string; en: string; fr?: string };
+  stock: number;
+  image: string;
+};
+
+type OrderStats = {
+  today: number;
+  pending: number;
+  confirmed: number;
+  revenueToday: number;
+  revenue30d: number;
+  total: number;
+};
 
 function Stat({
   label,
@@ -58,26 +85,69 @@ function Stat({
   );
 }
 
+function ActionCard({
+  tone,
+  icon,
+  count,
+  label,
+  href,
+  hint,
+}: {
+  tone: "danger" | "warning" | "info" | "success";
+  icon: string;
+  count: number;
+  label: string;
+  href: string;
+  hint?: string;
+}) {
+  const toneClass =
+    tone === "danger"
+      ? "bg-[var(--a-danger-bg)] text-[var(--a-danger)] border-[var(--a-danger-line)]"
+      : tone === "warning"
+        ? "bg-[var(--a-warning-bg)] text-[var(--a-warning)] border-[var(--a-warning-line)]"
+        : tone === "success"
+          ? "bg-[var(--a-success-bg)] text-[var(--a-success)] border-transparent"
+          : "bg-[var(--a-info-bg)] text-[var(--a-ink)] border-transparent";
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-4 p-4 rounded-md border hover:opacity-90 transition-opacity ${toneClass}`}
+    >
+      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/40 text-xl flex-shrink-0">
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-2xl font-semibold leading-none num">{count}</div>
+        <div className="text-sm font-medium mt-1 truncate">{label}</div>
+        {hint && <div className="text-xs opacity-80 mt-0.5 truncate">{hint}</div>}
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden className="opacity-60">
+        <path d="m9 18 6-6-6-6" />
+      </svg>
+    </Link>
+  );
+}
+
 function ActivityIcon({ kind }: { kind: ActivityItem["kind"] }) {
   const cls = "w-7 h-7 rounded-full flex items-center justify-center text-[12px]";
-  if (kind === "added") {
-    return <div className={`${cls} bg-[var(--a-success-bg)] text-[var(--a-success)]`}>+</div>;
+  if (kind === "order") {
+    return <div className={`${cls} bg-[var(--a-success-bg)] text-[var(--a-success)]`}>★</div>;
   }
   if (kind === "low") {
     return <div className={`${cls} bg-[var(--a-warning-bg)] text-[var(--a-warning)]`}>!</div>;
   }
-  if (kind === "sale") {
-    return <div className={`${cls} bg-[var(--a-info-bg)] text-[var(--a-ink)]`}>%</div>;
-  }
-  return <div className={`${cls} bg-[var(--a-line-soft)] text-[var(--a-ink)]`}>★</div>;
+  return <div className={`${cls} bg-[var(--a-info-bg)] text-[var(--a-ink)]`}>%</div>;
 }
 
 export function Dashboard({
   stats,
+  orderStats,
   categories,
   topProducts,
   revenue,
   activity,
+  pendingOrders,
+  lowStockList,
   dbReady = false,
   setupStatus,
 }: {
@@ -90,15 +160,18 @@ export function Dashboard({
     newCount: number;
     inventoryValue: number;
   };
+  orderStats: OrderStats;
   categories: CategoryStat[];
   topProducts: TopProduct[];
   revenue: number[];
   activity: ActivityItem[];
+  pendingOrders: PendingOrder[];
+  lowStockList: LowStockItem[];
   dbReady?: boolean;
   setupStatus?: SetupStatus;
 }) {
   const { d, locale } = useAdminLocale();
-  const total30d = revenue.reduce((s, v) => s + v, 0);
+  const total30d = orderStats.revenue30d || revenue.reduce((s, v) => s + v, 0);
   const numLocale = locale === "ar" ? "ar-SA" : locale === "fr" ? "fr-FR" : "en-US";
   const currency = "MAD";
 
@@ -106,12 +179,17 @@ export function Dashboard({
     n[locale] || n.en || n.ar;
 
   const activityText = (it: ActivityItem) => {
+    if (it.kind === "order") return it.label;
     const name = pickName(it.name);
-    if (it.kind === "added") return d.dashboard.activity_added(name);
     if (it.kind === "low") return d.dashboard.activity_low(name, it.qty);
-    if (it.kind === "sale") return d.dashboard.activity_sale(name);
-    return d.dashboard.activity_limited(name);
+    return d.dashboard.activity_sale(name);
   };
+
+  const hasActionItems =
+    orderStats.pending > 0 ||
+    stats.outOfStock > 0 ||
+    stats.lowStock > 0 ||
+    orderStats.today > 0;
 
   return (
     <>
@@ -120,17 +198,71 @@ export function Dashboard({
         {!dbReady && <DemoBanner>{d.common.demo_banner}</DemoBanner>}
         {setupStatus && <SetupChecklist status={setupStatus} />}
 
+        {hasActionItems && (
+          <section className="space-y-2">
+            <h2 className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium px-1">
+              Needs your attention
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {orderStats.pending > 0 && (
+                <ActionCard
+                  tone="warning"
+                  icon="🔔"
+                  count={orderStats.pending}
+                  label="Pending orders to confirm"
+                  href="/admin/orders"
+                  hint="Reply on WhatsApp"
+                />
+              )}
+              {orderStats.today > 0 && (
+                <ActionCard
+                  tone="success"
+                  icon="📦"
+                  count={orderStats.today}
+                  label="New orders today"
+                  href="/admin/orders"
+                  hint={`${currency} ${orderStats.revenueToday.toLocaleString(numLocale)} today`}
+                />
+              )}
+              {stats.outOfStock > 0 && (
+                <ActionCard
+                  tone="danger"
+                  icon="⚠"
+                  count={stats.outOfStock}
+                  label="Out of stock"
+                  href="/admin/inventory"
+                  hint="Restock before they're missed"
+                />
+              )}
+              {stats.lowStock > 0 && (
+                <ActionCard
+                  tone="warning"
+                  icon="📉"
+                  count={stats.lowStock}
+                  label="Low stock (≤ 5)"
+                  href="/admin/inventory"
+                  hint="Plan a restock"
+                />
+              )}
+            </div>
+          </section>
+        )}
+
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat
             label={d.dashboard.kpi_revenue}
             value={`${currency} ${total30d.toLocaleString(numLocale)}`}
-            hint={d.dashboard.kpi_revenue_hint}
+            hint={orderStats.total > 0 ? `${orderStats.total} orders total` : d.dashboard.kpi_revenue_hint}
             trend={revenue}
           />
           <Stat
             label={d.dashboard.kpi_orders}
-            value={0}
-            hint={d.dashboard.kpi_orders_hint}
+            value={orderStats.total}
+            hint={
+              orderStats.pending > 0
+                ? `${orderStats.pending} pending, ${orderStats.confirmed} confirmed`
+                : d.dashboard.kpi_orders_hint
+            }
           />
           <Stat
             label={d.dashboard.kpi_products}
@@ -156,8 +288,8 @@ export function Dashboard({
               <div className="text-2xl font-semibold num">
                 {currency} {total30d.toLocaleString(numLocale)}
               </div>
-              <div className="text-[11px] text-[var(--a-success)] num">
-                +12.4% vs prev 30d
+              <div className="text-[11px] text-[var(--a-ink-muted)] num">
+                {orderStats.total > 0 ? "Live data from orders" : "Awaiting first order"}
               </div>
             </div>
           </div>
@@ -165,6 +297,72 @@ export function Dashboard({
             <AreaSparkline values={revenue} width={1200} height={180} responsive />
           </div>
         </section>
+
+        {(pendingOrders.length > 0 || lowStockList.length > 0) && (
+          <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {pendingOrders.length > 0 && (
+              <div className="bg-[var(--a-surface)] border border-[var(--a-line)]">
+                <div className="px-5 py-4 border-b border-[var(--a-line)] flex items-center justify-between">
+                  <h2 className="text-sm font-semibold tracking-wide">Pending orders</h2>
+                  <Link href="/admin/orders" className="text-xs text-[var(--a-ink-muted)] hover:text-[var(--a-ink)]">
+                    See all →
+                  </Link>
+                </div>
+                <ul className="divide-y divide-[var(--a-line-soft)]">
+                  {pendingOrders.map((o) => (
+                    <li key={o.id} className="px-5 py-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[var(--a-warning-bg)] text-[var(--a-warning)] flex items-center justify-center font-mono text-xs">
+                        #{o.id}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{o.customerName}</div>
+                        <div className="text-xs text-[var(--a-ink-muted)] truncate">
+                          {o.city} · {o.itemCount} item{o.itemCount === 1 ? "" : "s"} · {o.currency} {o.subtotal.toLocaleString(numLocale)}
+                        </div>
+                      </div>
+                      <a
+                        href={`https://api.whatsapp.com/send?phone=${o.phone.replace(/[^0-9]/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 text-xs font-medium bg-[var(--a-accent)] text-[var(--a-accent-fg)] rounded-sm hover:opacity-90"
+                      >
+                        WhatsApp
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {lowStockList.length > 0 && (
+              <div className="bg-[var(--a-surface)] border border-[var(--a-line)]">
+                <div className="px-5 py-4 border-b border-[var(--a-line)] flex items-center justify-between">
+                  <h2 className="text-sm font-semibold tracking-wide">Low-stock alerts</h2>
+                  <Link href="/admin/inventory" className="text-xs text-[var(--a-ink-muted)] hover:text-[var(--a-ink)]">
+                    Inventory →
+                  </Link>
+                </div>
+                <ul className="divide-y divide-[var(--a-line-soft)]">
+                  {lowStockList.map((p) => (
+                    <li key={p.id} className="px-5 py-3">
+                      <Link
+                        href={`/admin/products/${p.id}`}
+                        className="flex items-center gap-3 hover:bg-[var(--a-line-soft)] -mx-5 px-5 py-1 rounded-sm transition-colors"
+                      >
+                        <div className="relative w-9 h-12 bg-[var(--a-line-soft)] overflow-hidden flex-shrink-0">
+                          <Image src={p.image} alt="" fill sizes="36px" className="object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{pickName(p.name)}</div>
+                          <div className="text-xs text-[var(--a-warning)] font-medium">Only {p.stock} left</div>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
           <div className="bg-[var(--a-surface)] border border-[var(--a-line)]">
@@ -182,14 +380,18 @@ export function Dashboard({
                 const pct = stats.productsCount === 0 ? 0 : (cat.productCount / stats.productsCount) * 100;
                 const label = cat[locale] || cat.en;
                 return (
-                  <div key={cat.key} className="px-5 py-4 flex items-center gap-4">
+                  <Link
+                    key={cat.key}
+                    href={`/admin/products?category=${cat.key}`}
+                    className="px-5 py-4 flex items-center gap-4 hover:bg-[var(--a-line-soft)] transition-colors"
+                  >
                     <div className="w-10 text-xl text-center" aria-hidden>
                       {cat.icon}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium">{label}</div>
                       <div className="text-xs text-[var(--a-ink-muted)] mt-0.5">
-                        {cat.subCount} · {cat.productCount}
+                        {cat.subCount} subcategories · {cat.productCount} products
                       </div>
                       <div className="mt-2 h-1 bg-[var(--a-line-soft)] rounded-full overflow-hidden">
                         <div
@@ -201,7 +403,7 @@ export function Dashboard({
                     <div className="text-sm font-semibold tabular-nums w-12 text-end num">
                       {cat.productCount}
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
@@ -211,7 +413,7 @@ export function Dashboard({
             <div className="px-5 py-4 border-b border-[var(--a-line)]">
               <h2 className="text-sm font-semibold tracking-wide">{d.dashboard.top_title}</h2>
               <div className="text-[11px] text-[var(--a-ink-muted)] mt-0.5">
-                {d.dashboard.top_subtitle}
+                {orderStats.total > 0 ? "By units sold (30d)" : d.dashboard.top_subtitle}
               </div>
             </div>
             <ul className="divide-y divide-[var(--a-line-soft)]">
@@ -240,6 +442,7 @@ export function Dashboard({
                         <div className="text-sm font-medium truncate">{pickName(p.name)}</div>
                         <div className="text-[11px] text-[var(--a-ink-muted)] num">
                           MAD {p.price.toLocaleString(numLocale)}
+                          {p.sold > 0 && ` · ${p.sold} sold`}
                         </div>
                       </div>
                     </Link>

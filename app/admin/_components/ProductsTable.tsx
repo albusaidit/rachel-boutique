@@ -5,9 +5,14 @@ import Image from "next/image";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  archiveProductAction,
   bulkArchiveProductsAction,
   bulkDeleteProductsAction,
+  deleteProductAction,
+  duplicateProductAction,
+  quickUpdateProductAction,
 } from "@/app/_lib/db/actions";
+import { useRouter } from "next/navigation";
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { useAdminToast } from "./AdminToast";
 import { Modal } from "./Modal";
@@ -104,6 +109,7 @@ export function ProductsTable({
 }) {
   const { d, locale } = useAdminLocale();
   const { push } = useAdminToast();
+  const router = useRouter();
   const params = useSearchParams();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -113,6 +119,62 @@ export function ProductsTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, start] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmRow, setConfirmRow] = useState<Row | null>(null);
+  const [overrides, setOverrides] = useState<Record<string, { price?: number; stock?: number }>>({});
+
+  const applyOverride = (id: string, patch: { price?: number; stock?: number }) =>
+    setOverrides((o) => ({ ...o, [id]: { ...o[id], ...patch } }));
+
+  const quickEdit = (id: string, patch: { price?: number; stock?: number }) => {
+    applyOverride(id, patch);
+    start(async () => {
+      try {
+        await quickUpdateProductAction(id, patch);
+      } catch (err) {
+        push(err instanceof Error ? err.message : "Update failed", "error");
+        setOverrides((o) => {
+          const next = { ...o };
+          delete next[id];
+          return next;
+        });
+      }
+    });
+  };
+
+  const duplicate = (id: string) => {
+    start(async () => {
+      try {
+        const r = await duplicateProductAction(id);
+        push("Duplicated", "success");
+        router.push(`/admin/products/${r.id}`);
+      } catch (err) {
+        push(err instanceof Error ? err.message : "Duplicate failed", "error");
+      }
+    });
+  };
+
+  const archiveOne = (id: string) => {
+    start(async () => {
+      try {
+        await archiveProductAction(id, true);
+        push("Archived", "success");
+      } catch (err) {
+        push(err instanceof Error ? err.message : "Archive failed", "error");
+      }
+    });
+  };
+
+  const deleteOne = (row: Row) => {
+    start(async () => {
+      try {
+        await deleteProductAction(row.id);
+        push("Deleted", "success");
+        setConfirmRow(null);
+      } catch (err) {
+        push(err instanceof Error ? err.message : "Delete failed", "error");
+      }
+    });
+  };
 
   const onSortClick = (field: SortField) => {
     if (sortField === field) {
@@ -443,8 +505,12 @@ export function ProductsTable({
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((p) => (
-                    <tr key={p.id} className="hover:bg-[var(--a-line-soft)]/50 transition-colors">
+                  filtered.map((p) => {
+                    const ov = overrides[p.id] ?? {};
+                    const currentPrice = ov.price ?? p.price;
+                    const currentStock = ov.stock ?? p.stock;
+                    return (
+                    <tr key={p.id} className="group hover:bg-[var(--a-line-soft)]/50 transition-colors">
                       <td className="px-4 py-3">
                         <input
                           type="checkbox"
@@ -454,12 +520,20 @@ export function ProductsTable({
                         />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="relative w-10 h-12 bg-[var(--a-line-soft)] overflow-hidden rounded-sm">
+                        <Link
+                          href={`/admin/products/${p.id}`}
+                          className="relative block w-10 h-12 bg-[var(--a-line-soft)] overflow-hidden rounded-sm"
+                        >
                           <Image src={p.image} alt="" fill sizes="40px" className="object-cover" />
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-4 py-3 max-w-[320px]">
-                        <div className="font-medium truncate">{pickName(p.name)}</div>
+                        <Link
+                          href={`/admin/products/${p.id}`}
+                          className="font-medium truncate block hover:underline"
+                        >
+                          {pickName(p.name)}
+                        </Link>
                         <div className="text-xs text-[var(--a-ink-muted)] mt-0.5 truncate">
                           {p.id} · /{p.slug}
                         </div>
@@ -468,27 +542,73 @@ export function ProductsTable({
                         {catLabels[p.category]}
                       </td>
                       <td className="px-4 py-3 text-end num">
-                        <div className="font-medium">MAD {p.price.toLocaleString(numLocale)}</div>
+                        <EditableNumber
+                          value={currentPrice}
+                          prefix="MAD"
+                          disabled={!dbReady || pending}
+                          onCommit={(n) => {
+                            if (n !== p.price) quickEdit(p.id, { price: n });
+                          }}
+                        />
                         {typeof p.compareAt === "number" && (
                           <div className="text-xs text-[var(--a-ink-faint)] line-through">
                             {p.compareAt.toLocaleString(numLocale)}
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-end num">{p.stock}</td>
+                      <td className="px-4 py-3 text-end num">
+                        <EditableNumber
+                          value={currentStock}
+                          disabled={!dbReady || pending}
+                          onCommit={(n) => {
+                            if (n !== p.stock) quickEdit(p.id, { stock: n });
+                          }}
+                        />
+                      </td>
                       <td className="px-4 py-3">
-                        <StockPill stock={p.stock} d={d} />
+                        <StockPill stock={currentStock} d={d} />
                       </td>
                       <td className="px-4 py-3 text-end">
-                        <Link
-                          href={`/admin/products/${p.id}`}
-                          className="text-xs text-[var(--a-ink-muted)] hover:text-[var(--a-ink)] underline"
-                        >
-                          {d.products.view}
-                        </Link>
+                        <div className="inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                          <Link
+                            href={`/admin/products/${p.id}`}
+                            className="px-2 py-1 text-xs border border-[var(--a-line)] rounded-sm text-[var(--a-ink-soft)] hover:bg-[var(--a-surface)]"
+                            title="Edit"
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => duplicate(p.id)}
+                            disabled={!dbReady || pending}
+                            className="px-2 py-1 text-xs border border-[var(--a-line)] rounded-sm text-[var(--a-ink-soft)] hover:bg-[var(--a-surface)] disabled:opacity-30"
+                            title="Duplicate"
+                          >
+                            Copy
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => archiveOne(p.id)}
+                            disabled={!dbReady || pending}
+                            className="px-2 py-1 text-xs border border-[var(--a-line)] rounded-sm text-[var(--a-ink-soft)] hover:bg-[var(--a-surface)] disabled:opacity-30"
+                            title="Archive"
+                          >
+                            Archive
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmRow(p)}
+                            disabled={!dbReady || pending}
+                            className="px-2 py-1 text-xs border border-[var(--a-danger-line)] rounded-sm text-[var(--a-danger)] hover:bg-[var(--a-danger-bg)] disabled:opacity-30"
+                            title="Delete"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  ))
+                  );
+                  })
                 )}
               </tbody>
             </table>
@@ -537,7 +657,102 @@ export function ProductsTable({
           </div>
         </div>
       </Modal>
+
+      <Modal
+        open={!!confirmRow}
+        onClose={() => setConfirmRow(null)}
+        title="Delete product"
+        size="sm"
+      >
+        {confirmRow && (
+          <div className="space-y-4">
+            <p className="text-sm">
+              Permanently delete <span className="font-medium">{pickName(confirmRow.name)}</span>? This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--a-line)]">
+              <button
+                type="button"
+                onClick={() => setConfirmRow(null)}
+                className="px-4 py-2 text-sm font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)]"
+              >
+                {d.common.cancel}
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => deleteOne(confirmRow)}
+                className="bg-[var(--a-danger)] text-white px-5 py-2 text-sm font-semibold rounded-sm hover:opacity-90 disabled:opacity-40"
+              >
+                {pending ? "…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </>
+  );
+}
+
+function EditableNumber({
+  value,
+  prefix,
+  disabled,
+  onCommit,
+}: {
+  value: number;
+  prefix?: string;
+  disabled?: boolean;
+  onCommit: (n: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(value));
+
+  const finish = () => {
+    setEditing(false);
+    const n = Number(draft.replace(/[^\d.-]/g, ""));
+    if (Number.isFinite(n) && n !== value) onCommit(Math.max(0, Math.floor(n)));
+  };
+
+  if (editing) {
+    return (
+      <div className="inline-flex items-center justify-end gap-1">
+        {prefix && <span className="text-[var(--a-ink-faint)] text-xs">{prefix}</span>}
+        <input
+          autoFocus
+          value={draft}
+          inputMode="numeric"
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={finish}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              (e.target as HTMLInputElement).blur();
+            } else if (e.key === "Escape") {
+              setEditing(false);
+              setDraft(String(value));
+            }
+          }}
+          className="w-24 border border-[var(--a-accent)] px-2 py-0.5 text-end num text-sm bg-[var(--a-surface)] outline-none rounded-sm"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (disabled) return;
+        setDraft(String(value));
+        setEditing(true);
+      }}
+      disabled={disabled}
+      className="font-medium hover:bg-[var(--a-line-soft)] px-2 py-0.5 -mx-2 rounded-sm transition-colors disabled:cursor-not-allowed"
+      title="Click to edit"
+    >
+      {prefix ? `${prefix} ` : ""}
+      {value.toLocaleString("en-US")}
+    </button>
   );
 }
 

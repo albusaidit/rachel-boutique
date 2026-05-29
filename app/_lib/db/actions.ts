@@ -169,6 +169,92 @@ export async function bulkDeleteProductsAction(ids: string[]) {
   return { count: ids.length };
 }
 
+export async function quickUpdateProductAction(
+  id: string,
+  patch: { price?: number; stock?: number; compareAt?: number | null },
+) {
+  await ensureAuth();
+  ensureDb();
+  const update: Partial<typeof schema.products.$inferInsert> = {
+    updatedAt: new Date(),
+  };
+  if (typeof patch.price === "number" && Number.isFinite(patch.price)) {
+    update.price = Math.max(0, Math.floor(patch.price));
+  }
+  if (typeof patch.stock === "number" && Number.isFinite(patch.stock)) {
+    update.stock = Math.max(0, Math.floor(patch.stock));
+  }
+  if (patch.compareAt === null) {
+    update.compareAt = null;
+  } else if (typeof patch.compareAt === "number" && Number.isFinite(patch.compareAt)) {
+    update.compareAt = Math.max(0, Math.floor(patch.compareAt));
+  }
+  await getDb().update(schema.products).set(update).where(eq(schema.products.id, id));
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function duplicateProductAction(id: string) {
+  await ensureAuth();
+  ensureDb();
+  const rows = await getDb()
+    .select()
+    .from(schema.products)
+    .where(eq(schema.products.id, id))
+    .limit(1);
+  if (rows.length === 0) throw new Error("product not found");
+  const src = rows[0];
+
+  let newId = `${src.id}-copy`;
+  let newSlug = `${src.slug}-copy`;
+  let i = 1;
+  while (true) {
+    const existing = await getDb()
+      .select({ id: schema.products.id })
+      .from(schema.products)
+      .where(eq(schema.products.id, newId))
+      .limit(1);
+    if (existing.length === 0) break;
+    i += 1;
+    newId = `${src.id}-copy-${i}`;
+    newSlug = `${src.slug}-copy-${i}`;
+  }
+
+  await getDb().insert(schema.products).values({
+    ...src,
+    id: newId,
+    slug: newSlug,
+    nameEn: `${src.nameEn} (copy)`,
+    nameAr: `${src.nameAr} (نسخة)`,
+    nameFr: src.nameFr ? `${src.nameFr} (copie)` : null,
+    archivedAt: null,
+    stock: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin");
+  return { id: newId };
+}
+
+export async function archiveProductAction(id: string, archive: boolean) {
+  await ensureAuth();
+  ensureDb();
+  await getDb()
+    .update(schema.products)
+    .set({ archivedAt: archive ? new Date() : null, updatedAt: new Date() })
+    .where(eq(schema.products.id, id));
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin");
+  revalidatePath("/");
+}
+
 export async function bulkArchiveProductsAction(ids: string[], archive: boolean) {
   await ensureAuth();
   ensureDb();

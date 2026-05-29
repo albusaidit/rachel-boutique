@@ -9,6 +9,7 @@ import {
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { useAdminToast } from "./AdminToast";
 import { Modal } from "./Modal";
+import { SideDrawer } from "./SideDrawer";
 import { PageHeader } from "./PageHeader";
 
 const STATUSES = [
@@ -125,7 +126,14 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                 </tr>
               ) : (
                 filtered.map((o) => (
-                  <tr key={o.id} className="hover:bg-[var(--a-line-soft)]/50">
+                  <tr
+                    key={o.id}
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest("button, select, a")) return;
+                      setOpenOrder(o);
+                    }}
+                    className="group hover:bg-[var(--a-line-soft)]/50 cursor-pointer"
+                  >
                     <td className="px-4 py-3 font-mono text-xs text-[var(--a-ink-soft)]">
                       #{o.id}
                     </td>
@@ -158,11 +166,11 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                       {new Date(o.createdAt).toISOString().slice(0, 10)}
                     </td>
                     <td className="px-4 py-3 text-end whitespace-nowrap">
-                      <div className="inline-flex gap-1">
+                      <div className="inline-flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                         <button
                           type="button"
                           onClick={() => setOpenOrder(o)}
-                          className="px-2 py-1 text-xs border border-[var(--a-line)] text-[var(--a-ink-soft)] hover:bg-[var(--a-line-soft)] rounded-sm"
+                          className="px-2 py-1 text-xs border border-[var(--a-line)] text-[var(--a-ink-soft)] hover:bg-[var(--a-surface)] rounded-sm"
                         >
                           View
                         </button>
@@ -170,10 +178,20 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                           href={`https://api.whatsapp.com/send?phone=${o.phone.replace(/[^0-9]/g, "")}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2 py-1 text-xs border border-[var(--a-line)] text-[var(--a-ink-soft)] hover:bg-[var(--a-line-soft)] rounded-sm"
+                          className="px-2 py-1 text-xs border border-[var(--a-line)] text-[var(--a-ink-soft)] hover:bg-[var(--a-surface)] rounded-sm"
                         >
                           WhatsApp
                         </a>
+                        {o.status === "pending" && (
+                          <button
+                            type="button"
+                            onClick={() => onChangeStatus(o, "confirmed")}
+                            disabled={pending}
+                            className="px-2 py-1 text-xs border border-[var(--a-line)] text-[var(--a-success)] hover:bg-[var(--a-success-bg)] rounded-sm disabled:opacity-30"
+                          >
+                            Confirm
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setConfirmDelete(o)}
@@ -192,21 +210,53 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
         </section>
       </div>
 
-      <Modal
+      <SideDrawer
         open={!!openOrder}
         onClose={() => setOpenOrder(null)}
         title={openOrder ? `Order #${openOrder.id}` : "Order"}
-        size="lg"
+        subtitle={openOrder ? `${openOrder.customerName} · ${openOrder.city}` : undefined}
+        width={520}
+        footer={
+          openOrder && (
+            <>
+              <a
+                href={`https://api.whatsapp.com/send?phone=${openOrder.phone.replace(/[^0-9]/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 text-sm font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)]"
+              >
+                Open WhatsApp
+              </a>
+              {openOrder.status === "pending" && (
+                <button
+                  type="button"
+                  onClick={() => onChangeStatus(openOrder, "confirmed")}
+                  disabled={pending}
+                  className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-5 py-2 text-sm font-semibold rounded-sm hover:opacity-90 disabled:opacity-40"
+                >
+                  Confirm order
+                </button>
+              )}
+            </>
+          )
+        }
       >
         {openOrder && (
-          <div className="space-y-4 text-sm">
+          <div className="space-y-5 text-sm">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)]">
                   Customer
                 </div>
                 <div className="mt-1 font-medium">{openOrder.customerName}</div>
-                <div className="text-xs text-[var(--a-ink-muted)]">{openOrder.phone}</div>
+                <a
+                  href={`https://api.whatsapp.com/send?phone=${openOrder.phone.replace(/[^0-9]/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-[var(--a-accent)] hover:underline block"
+                >
+                  {openOrder.phone}
+                </a>
                 <div className="text-xs text-[var(--a-ink-muted)]">{openOrder.city}</div>
               </div>
               <div>
@@ -214,14 +264,24 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                   Order
                 </div>
                 <div className="mt-1">{new Date(openOrder.createdAt).toLocaleString()}</div>
-                <div className="text-xs text-[var(--a-ink-muted)] capitalize">
-                  Status: {openOrder.status}
-                </div>
+                <div className="text-xs text-[var(--a-ink-muted)] mt-1">Status</div>
+                <select
+                  value={openOrder.status}
+                  disabled={pending}
+                  onChange={(e) => onChangeStatus(openOrder, e.target.value as Status)}
+                  className={`mt-0.5 px-2 py-1 text-xs rounded-sm border-0 ${STATUS_TONE[openOrder.status as Status] || ""}`}
+                >
+                  {STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-            <div className="border-t border-[var(--a-line)] pt-3">
+            <div className="border-t border-[var(--a-line)] pt-4">
               <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] mb-2">
-                Items
+                Items ({openOrder.items.length})
               </div>
               <ul className="space-y-2">
                 {openOrder.items.map((it, i) => (
@@ -242,7 +302,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                 ))}
               </ul>
             </div>
-            <div className="flex items-center justify-between border-t border-[var(--a-line)] pt-3 font-medium">
+            <div className="flex items-center justify-between border-t border-[var(--a-line)] pt-3 text-base font-semibold">
               <span>Total</span>
               <span className="num">
                 {openOrder.currency} {openOrder.subtotal.toLocaleString(numLocale)}
@@ -258,7 +318,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
             )}
           </div>
         )}
-      </Modal>
+      </SideDrawer>
 
       <Modal
         open={!!confirmDelete}
