@@ -218,6 +218,23 @@ export async function quickUpdateProductAction(id: string, patch: ProductPatch) 
   return { ok: true };
 }
 
+export async function saveHomepageLayoutAction(
+  layout: Array<{ key: string; visible: boolean }>,
+) {
+  await ensureAuth();
+  ensureDb();
+  const { saveHomepageLayout } = await import("./homepage-layout");
+  await saveHomepageLayout(
+    layout.map((s) => ({
+      key: s.key as never,
+      visible: s.visible !== false,
+    })),
+  );
+  revalidatePath("/admin/homepage");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 export async function reorderProductsAction(orderedIds: string[]) {
   await ensureAuth();
   ensureDb();

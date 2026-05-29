@@ -11,6 +11,7 @@ export function Sidebar() {
 
   const NAV = [
     { href: "/admin", label: d.nav.dashboard, icon: "▢" },
+    { href: "/admin/homepage", label: d.nav.homepage, icon: "❖" },
     { href: "/admin/products", label: d.nav.products, icon: "▤" },
     { href: "/admin/inventory", label: d.nav.inventory, icon: "▧" },
     { href: "/admin/orders", label: d.nav.orders, icon: "▥" },

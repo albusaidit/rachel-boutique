@@ -30,6 +30,7 @@ export function CommandPalette({
   const items: Item[] = useMemo(() => {
     const navItems: Item[] = [
       { id: "p-dash", group: "pages", label: d.nav.dashboard, action: () => router.push("/admin") },
+      { id: "p-homepage", group: "pages", label: d.nav.homepage, action: () => router.push("/admin/homepage") },
       { id: "p-products", group: "pages", label: d.nav.products, action: () => router.push("/admin/products") },
       { id: "p-inventory", group: "pages", label: d.nav.inventory, action: () => router.push("/admin/inventory") },
       { id: "p-orders", group: "pages", label: d.nav.orders, action: () => router.push("/admin/orders") },
