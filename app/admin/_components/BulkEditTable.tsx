@@ -212,7 +212,7 @@ export function BulkEditTable({
 
         <section className="bg-[var(--a-surface)] border border-[var(--a-line)] overflow-x-auto">
           <table className="w-full text-sm min-w-[1400px]">
-            <thead className="bg-[var(--a-line-soft)] text-[10px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] sticky top-14 z-10">
+            <thead className="bg-[var(--a-line-soft)] text-[10px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] border-b border-[var(--a-line)]">
               <tr>
                 <th className="text-start px-3 py-3 w-12"></th>
                 <th className="text-start px-3 py-3 w-12"></th>
