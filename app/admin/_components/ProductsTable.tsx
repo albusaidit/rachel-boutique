@@ -298,6 +298,17 @@ export function ProductsTable({
         actions={
           <>
             <Link
+              href="/admin/products/import"
+              className="border border-[var(--a-line)] bg-[var(--a-surface)] px-4 py-2 text-sm font-medium text-[var(--a-ink-soft)] hover:border-[var(--a-ink-faint)] hover:text-[var(--a-ink)] transition-colors flex items-center gap-2 rounded-sm"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="m17 8-5-5-5 5" strokeLinejoin="round" />
+                <path d="M12 3v12" />
+              </svg>
+              Import
+            </Link>
+            <Link
               href="/admin/products/order"
               className="border border-[var(--a-line)] bg-[var(--a-surface)] px-4 py-2 text-sm font-medium text-[var(--a-ink-soft)] hover:border-[var(--a-ink-faint)] hover:text-[var(--a-ink)] transition-colors flex items-center gap-2 rounded-sm"
             >

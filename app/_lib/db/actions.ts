@@ -235,6 +235,174 @@ export async function saveHomepageLayoutAction(
   return { ok: true };
 }
 
+export type ImportProductRow = {
+  id: string;
+  slug?: string;
+  nameEn?: string;
+  nameAr?: string;
+  nameFr?: string | null;
+  descEn?: string;
+  descAr?: string;
+  descFr?: string | null;
+  price?: number;
+  compareAt?: number | null;
+  stock?: number;
+  category?: string;
+  subcategory?: string;
+  sizes?: string[];
+  tags?: string[];
+  images?: string[];
+};
+
+export type ImportRowResult = {
+  rowNumber: number;
+  id: string;
+  status: "created" | "updated" | "skipped" | "error";
+  error?: string;
+};
+
+export async function bulkImportProductsAction(
+  rows: ImportProductRow[],
+): Promise<{ created: number; updated: number; errors: number; results: ImportRowResult[] }> {
+  await ensureAuth();
+  ensureDb();
+  const db = getDb();
+  const results: ImportRowResult[] = [];
+  let created = 0;
+  let updated = 0;
+  let errors = 0;
+
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
+    const rowNumber = i + 2; // header is row 1
+    const id = (row.id ?? "").trim();
+    if (!id) {
+      errors += 1;
+      results.push({ rowNumber, id: "", status: "error", error: "Missing id" });
+      continue;
+    }
+    if (!/^[a-z0-9-]+$/.test(id)) {
+      errors += 1;
+      results.push({ rowNumber, id, status: "error", error: "ID must be lowercase letters/digits/hyphens" });
+      continue;
+    }
+
+    const existing = await db
+      .select()
+      .from(schema.products)
+      .where(eq(schema.products.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      // CREATE — need full required fields
+      const slug = (row.slug ?? "").trim() || id;
+      const nameEn = (row.nameEn ?? "").trim();
+      const nameAr = (row.nameAr ?? "").trim();
+      const descEn = (row.descEn ?? "").trim() || nameEn;
+      const descAr = (row.descAr ?? "").trim() || nameAr;
+      const category = (row.category ?? "").trim();
+      const subcategory = (row.subcategory ?? "").trim();
+      if (!nameEn || !nameAr || !category || !subcategory) {
+        errors += 1;
+        results.push({
+          rowNumber,
+          id,
+          status: "error",
+          error: "New rows require nameEn, nameAr, category, subcategory",
+        });
+        continue;
+      }
+      try {
+        await db.insert(schema.products).values({
+          id,
+          slug,
+          nameEn,
+          nameAr,
+          nameFr: row.nameFr?.trim() || null,
+          descEn,
+          descAr,
+          descFr: row.descFr?.trim() || null,
+          price: Math.max(0, Math.floor(row.price ?? 0)),
+          compareAt:
+            typeof row.compareAt === "number" && Number.isFinite(row.compareAt)
+              ? Math.max(0, Math.floor(row.compareAt))
+              : null,
+          currency: "MAD",
+          stock: Math.max(0, Math.floor(row.stock ?? 0)),
+          sizes: row.sizes ?? [],
+          tags: row.tags ?? [],
+          colors: [],
+          images: row.images ?? [],
+          category,
+          subcategory,
+        });
+        created += 1;
+        results.push({ rowNumber, id, status: "created" });
+      } catch (err) {
+        errors += 1;
+        results.push({
+          rowNumber,
+          id,
+          status: "error",
+          error: err instanceof Error ? err.message : "insert failed",
+        });
+      }
+    } else {
+      // UPDATE — only fields the user provided
+      const update: Partial<typeof schema.products.$inferInsert> = { updatedAt: new Date() };
+      if (row.slug !== undefined && row.slug.trim()) update.slug = row.slug.trim();
+      if (row.nameEn !== undefined && row.nameEn.trim()) update.nameEn = row.nameEn.trim();
+      if (row.nameAr !== undefined && row.nameAr.trim()) update.nameAr = row.nameAr.trim();
+      if (row.nameFr !== undefined) update.nameFr = row.nameFr?.trim() || null;
+      if (row.descEn !== undefined && row.descEn.trim()) update.descEn = row.descEn.trim();
+      if (row.descAr !== undefined && row.descAr.trim()) update.descAr = row.descAr.trim();
+      if (row.descFr !== undefined) update.descFr = row.descFr?.trim() || null;
+      if (typeof row.price === "number" && Number.isFinite(row.price)) {
+        update.price = Math.max(0, Math.floor(row.price));
+      }
+      if (row.compareAt === null) update.compareAt = null;
+      else if (typeof row.compareAt === "number" && Number.isFinite(row.compareAt)) {
+        update.compareAt = Math.max(0, Math.floor(row.compareAt));
+      }
+      if (typeof row.stock === "number" && Number.isFinite(row.stock)) {
+        update.stock = Math.max(0, Math.floor(row.stock));
+      }
+      if (row.category !== undefined && row.category.trim()) update.category = row.category.trim();
+      if (row.subcategory !== undefined && row.subcategory.trim()) update.subcategory = row.subcategory.trim();
+      if (Array.isArray(row.sizes)) update.sizes = row.sizes;
+      if (Array.isArray(row.tags)) update.tags = row.tags;
+      if (Array.isArray(row.images) && row.images.length > 0) update.images = row.images;
+      const hasUpdate = Object.keys(update).length > 1; // updatedAt always present
+      if (!hasUpdate) {
+        results.push({ rowNumber, id, status: "skipped" });
+        continue;
+      }
+      try {
+        await db.update(schema.products).set(update).where(eq(schema.products.id, id));
+        updated += 1;
+        results.push({ rowNumber, id, status: "updated" });
+      } catch (err) {
+        errors += 1;
+        results.push({
+          rowNumber,
+          id,
+          status: "error",
+          error: err instanceof Error ? err.message : "update failed",
+        });
+      }
+    }
+  }
+
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/products/bulk");
+  revalidatePath("/admin/products/order");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin");
+  revalidatePath("/");
+
+  return { created, updated, errors, results };
+}
+
 export async function reorderProductsAction(orderedIds: string[]) {
   await ensureAuth();
   ensureDb();
