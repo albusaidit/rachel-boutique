@@ -235,6 +235,157 @@ export async function saveHomepageLayoutAction(
   return { ok: true };
 }
 
+function rowFromSheetObj(raw: Record<string, unknown>): ImportProductRow {
+  const norm = (s: string) => s.toLowerCase().replace(/[\s_-]/g, "");
+  const lookup: Record<string, unknown> = {};
+  for (const k of Object.keys(raw)) lookup[norm(k)] = raw[k];
+  const get = (k: string) => lookup[norm(k)];
+  const asNum = (v: unknown): number | undefined => {
+    if (v === undefined || v === null || v === "") return undefined;
+    const n = typeof v === "number" ? v : Number(String(v).replace(/[, ]/g, ""));
+    return Number.isFinite(n) ? n : undefined;
+  };
+  const asNumOrNull = (v: unknown): number | null | undefined => {
+    if (v === null || v === "" || v === "—") return null;
+    return asNum(v);
+  };
+  const asStr = (v: unknown): string | undefined => {
+    if (v === undefined || v === null) return undefined;
+    const s = String(v).trim();
+    return s || undefined;
+  };
+  const splitList = (v: unknown): string[] => {
+    if (!v) return [];
+    if (Array.isArray(v)) return v.map((s) => String(s).trim()).filter(Boolean);
+    const s = String(v).trim();
+    if (!s) return [];
+    const splitter = s.includes("|") ? "|" : ",";
+    return s
+      .split(splitter)
+      .map((p) => p.trim())
+      .filter(Boolean);
+  };
+  return {
+    id: String(get("id") ?? "").trim().toLowerCase(),
+    slug: asStr(get("slug")),
+    nameEn: asStr(get("nameEn")),
+    nameAr: asStr(get("nameAr")),
+    nameFr: asStr(get("nameFr")) ?? null,
+    descEn: asStr(get("descEn")),
+    descAr: asStr(get("descAr")),
+    descFr: asStr(get("descFr")) ?? null,
+    price: asNum(get("price")),
+    compareAt: asNumOrNull(get("compareAt")),
+    stock: asNum(get("stock")),
+    category: asStr(get("category")),
+    subcategory: asStr(get("subcategory")),
+    sizes: splitList(get("sizes")),
+    tags: splitList(get("tags")),
+    images: splitList(get("images")),
+  };
+}
+
+export async function syncFromGoogleSheetsAction(): Promise<
+  | {
+      ok: true;
+      created: number;
+      updated: number;
+      errors: number;
+      total: number;
+      sheetId: string;
+      serviceAccount: string;
+      tabName: string;
+    }
+  | { ok: false; error: string }
+> {
+  await ensureAuth();
+  ensureDb();
+  const { isSheetsConfigured, readSheetRows } = await import(
+    "@/app/_lib/google-sheets/client"
+  );
+  if (!isSheetsConfigured()) {
+    return { ok: false, error: "sheets_not_configured" };
+  }
+  let read;
+  try {
+    read = await readSheetRows();
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "sheet_read_failed",
+    };
+  }
+  if (read.rows.length === 0) {
+    return {
+      ok: true,
+      created: 0,
+      updated: 0,
+      errors: 0,
+      total: 0,
+      sheetId: read.sheetId,
+      serviceAccount: read.serviceAccount,
+      tabName: read.tabName,
+    };
+  }
+  const importRows = read.rows.map((r) => rowFromSheetObj(r));
+  const result = await bulkImportProductsAction(importRows);
+
+  // Persist last sync info into the settings table for the UI badge.
+  try {
+    const now = new Date();
+    const value = JSON.stringify({
+      at: now.toISOString(),
+      created: result.created,
+      updated: result.updated,
+      errors: result.errors,
+      total: importRows.length,
+    });
+    await getDb()
+      .insert(schema.settings)
+      .values({ key: "sheets_last_sync", value })
+      .onConflictDoUpdate({
+        target: schema.settings.key,
+        set: { value, updatedAt: now },
+      });
+  } catch {
+    // ignore — sync result still returned
+  }
+
+  revalidatePath("/admin/products/import");
+  return {
+    ok: true,
+    created: result.created,
+    updated: result.updated,
+    errors: result.errors,
+    total: importRows.length,
+    sheetId: read.sheetId,
+    serviceAccount: read.serviceAccount,
+    tabName: read.tabName,
+  };
+}
+
+export async function getLastSheetsSyncAction(): Promise<{
+  at: string;
+  created: number;
+  updated: number;
+  errors: number;
+  total: number;
+} | null> {
+  await ensureAuth();
+  if (!isDbConfigured()) return null;
+  try {
+    const rows = await getDb()
+      .select()
+      .from(schema.settings)
+      .where(eq(schema.settings.key, "sheets_last_sync"))
+      .limit(1);
+    if (rows.length === 0) return null;
+    return JSON.parse(rows[0].value);
+  } catch {
+    return null;
+  }
+}
+
 export type ImportProductRow = {
   id: string;
   slug?: string;

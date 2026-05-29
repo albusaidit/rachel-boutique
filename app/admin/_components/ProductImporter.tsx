@@ -5,6 +5,7 @@ import { useRef, useState, useTransition } from "react";
 import * as XLSX from "xlsx";
 import {
   bulkImportProductsAction,
+  syncFromGoogleSheetsAction,
   type ImportProductRow,
   type ImportRowResult,
 } from "@/app/_lib/db/actions";
@@ -95,14 +96,32 @@ function buildColumnMap(headers: string[]): Record<string, string> {
   return map;
 }
 
+type SheetsConfig =
+  | { configured: false }
+  | {
+      configured: true;
+      sheetId: string;
+      tabName: string;
+      serviceAccount: string;
+      lastSync: {
+        at: string;
+        created: number;
+        updated: number;
+        errors: number;
+        total: number;
+      } | null;
+    };
+
 export function ProductImporter({
   current,
   categories,
   dbReady = false,
+  sheetsConfig,
 }: {
   current: CurrentRow[];
   categories: CategoryRef[];
   dbReady?: boolean;
+  sheetsConfig: SheetsConfig;
 }) {
   const { d } = useAdminLocale();
   const { push } = useAdminToast();
@@ -118,6 +137,44 @@ export function ProductImporter({
     rows: ImportRowResult[];
   } | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState(
+    sheetsConfig.configured ? sheetsConfig.lastSync : null,
+  );
+
+  const syncFromDrive = () => {
+    if (!sheetsConfig.configured) return;
+    setSyncing(true);
+    void (async () => {
+      try {
+        const res = await syncFromGoogleSheetsAction();
+        if (!res.ok) {
+          push(
+            res.error === "sheets_not_configured"
+              ? "Google Sheets isn't configured."
+              : `Sync failed: ${res.error}`,
+            "error",
+          );
+          return;
+        }
+        setLastSync({
+          at: new Date().toISOString(),
+          created: res.created,
+          updated: res.updated,
+          errors: res.errors,
+          total: res.total,
+        });
+        push(
+          `Synced from Drive · ${res.created} new, ${res.updated} updated, ${res.errors} errors`,
+          res.errors > 0 ? "error" : "success",
+        );
+      } catch (err) {
+        push(err instanceof Error ? err.message : "Sync failed", "error");
+      } finally {
+        setSyncing(false);
+      }
+    })();
+  };
 
   const downloadTemplate = (mode: "current" | "blank") => {
     const rows = mode === "current" ? current : [];
@@ -206,6 +263,103 @@ export function ProductImporter({
       />
       <div className="px-8 py-6 space-y-6">
         {!dbReady && <DemoBanner>{d.common.demo_banner}</DemoBanner>}
+
+        {/* Live Google Sheets sync */}
+        {sheetsConfig.configured ? (
+          <section className="bg-[var(--a-surface)] border border-[var(--a-line)] p-5 space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="w-10 h-10 rounded-full bg-[var(--a-success-bg)] text-[var(--a-success)] flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M9 12l2 2 4-4" />
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+              </span>
+              <div className="flex-1">
+                <h2 className="text-sm font-semibold tracking-wide flex items-center gap-2">
+                  Linked to Google Drive
+                  <span className="text-[10px] tracking-[0.2em] uppercase px-2 py-0.5 bg-[var(--a-success-bg)] text-[var(--a-success)] rounded-sm font-medium">
+                    Live
+                  </span>
+                </h2>
+                <div className="text-xs text-[var(--a-ink-muted)] mt-0.5">
+                  Source of truth: <b>Google Sheet</b> tab "{sheetsConfig.tabName}". Edit there, click Sync now, or wait for the scheduled cron.
+                </div>
+                <div className="text-[11px] text-[var(--a-ink-faint)] mt-1 break-all font-mono">
+                  Service account: {sheetsConfig.serviceAccount}
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={syncFromDrive}
+                disabled={syncing}
+                className="bg-[var(--a-accent)] text-[var(--a-accent-fg)] px-4 py-2 text-sm font-semibold rounded-sm hover:opacity-90 disabled:opacity-40 inline-flex items-center gap-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={syncing ? "animate-spin" : ""}>
+                  <path d="M21 12a9 9 0 1 1-3-6.7" />
+                  <path d="M21 3v6h-6" />
+                </svg>
+                {syncing ? "Syncing…" : "Sync now"}
+              </button>
+              <a
+                href={`https://docs.google.com/spreadsheets/d/${sheetsConfig.sheetId}/edit`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 text-sm font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] hover:bg-[var(--a-line-soft)] rounded-sm inline-flex items-center gap-1.5"
+              >
+                Open in Drive
+                <span aria-hidden>↗</span>
+              </a>
+              {lastSync ? (
+                <div className="text-xs text-[var(--a-ink-muted)] ms-auto">
+                  Last sync: {new Date(lastSync.at).toLocaleString()} ·{" "}
+                  <span className="text-[var(--a-success)] font-medium">{lastSync.created} new</span>,{" "}
+                  <span className="text-[var(--a-accent)] font-medium">{lastSync.updated} updated</span>
+                  {lastSync.errors > 0 && (
+                    <>
+                      , <span className="text-[var(--a-danger)] font-medium">{lastSync.errors} errors</span>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="text-xs text-[var(--a-ink-muted)] ms-auto italic">No syncs yet</div>
+              )}
+            </div>
+          </section>
+        ) : (
+          <section className="bg-[var(--a-info-bg)] border border-[var(--a-line)] p-5 space-y-3 rounded-md">
+            <div className="flex items-start gap-3">
+              <span className="w-10 h-10 rounded-full bg-white/60 text-[var(--a-ink)] flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <path d="M14 2v6h6" />
+                </svg>
+              </span>
+              <div className="flex-1">
+                <h2 className="text-sm font-semibold tracking-wide">Link to Google Drive (live)</h2>
+                <p className="text-xs text-[var(--a-ink-soft)] mt-1 leading-relaxed">
+                  Connect a Google Sheet as the live source of truth for your catalog. Edit there → click Sync now (or let the scheduled cron pull every 10 min) → portal + storefront reflect the changes.
+                </p>
+                <details className="text-xs text-[var(--a-ink-muted)] mt-3">
+                  <summary className="cursor-pointer select-none hover:text-[var(--a-ink)] font-medium">Setup steps (one time, ~10 min) ▾</summary>
+                  <ol className="mt-2 list-decimal list-inside space-y-1.5">
+                    <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" className="underline">console.cloud.google.com</a> → create a new project (e.g. "rachel-catalog").</li>
+                    <li>APIs &amp; Services → Library → enable <b>Google Sheets API</b>.</li>
+                    <li>APIs &amp; Services → Credentials → Create credentials → <b>Service account</b> → name it "rachel-sync" → done.</li>
+                    <li>Click that service account → Keys → Add Key → Create new key → <b>JSON</b> → download the file.</li>
+                    <li>Download the workbook from this page (button below), open the Products tab in <a href="https://drive.google.com" target="_blank" rel="noreferrer" className="underline">Google Drive</a> → Share → paste the service account&apos;s email (ends in <code>@…iam.gserviceaccount.com</code>) → Editor.</li>
+                    <li>Copy the sheet ID from its URL (the long string between <code>/d/</code> and <code>/edit</code>).</li>
+                    <li>Send me both values — I&apos;ll add them to Vercel env, the portal will instantly show this panel green.</li>
+                  </ol>
+                  <div className="mt-2 text-[11px] text-[var(--a-ink-faint)]">
+                    Env vars to set: <code>GOOGLE_SHEETS_ID</code>, <code>GOOGLE_SERVICE_ACCOUNT_KEY</code> (JSON), optional <code>GOOGLE_SHEETS_TAB</code> (defaults to "Products").
+                  </div>
+                </details>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Templates */}
         <section className="bg-[var(--a-surface)] border border-[var(--a-line)] p-5 space-y-3">
