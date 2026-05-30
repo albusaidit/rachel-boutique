@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useCart } from "../_lib/cart";
 import { useToast } from "./Toast";
-import { pickLocale, type Product } from "../_lib/products";
+import { colorLabel, pickLocale, type Product } from "../_lib/products";
 import { useLocale } from "../_lib/i18n";
 
 const badgeStyles: Record<string, string> = {
@@ -187,7 +187,7 @@ export function ProductCard({
                 key={c.name}
                 className="w-3 h-3 rounded-full ring-1 ring-[var(--line)]"
                 style={{ background: c.hex }}
-                title={c.name}
+                title={colorLabel(c.name, locale)}
               />
             ))}
           </div>

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { products, categoryTree, pickLocale, type CategoryKey } from "../_lib/products";
 import { LOCALES, useLocale, type Locale } from "../_lib/i18n";
 import { useStorefrontUI } from "../_lib/storefront-ui";
+import { useScrollLock } from "../_lib/scroll-lock";
 import { BrandMark } from "./BrandMark";
 
 const LOCALE_LABEL: Record<Locale, string> = { ar: "AR", en: "EN", fr: "FR" };
@@ -16,14 +17,7 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<CategoryKey | null>(null);
 
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = "";
-      };
-    }
-  }, [open]);
+  useScrollLock(open);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useCart } from "../_lib/cart";
-import { pickLocale } from "../_lib/products";
+import { colorLabel, pickLocale } from "../_lib/products";
+import { useScrollLock } from "../_lib/scroll-lock";
 import { useLocale, type Dict, type Locale } from "../_lib/i18n";
 import { createOrderAction } from "@/app/_lib/db/orders-actions";
 
@@ -25,7 +26,7 @@ function whatsappMessage(
   const items = lines
     .map(
       ({ line, product }, i) =>
-        `${i + 1}. ${pickLocale(product.name, locale)} — ${line.size} / ${line.color} — ×${line.qty} — ${(
+        `${i + 1}. ${pickLocale(product.name, locale)} — ${line.size} / ${colorLabel(line.color, locale)} — ×${line.qty} — ${(
           product.price * line.qty
         ).toLocaleString(priceLocaleTag)} ${d.product.currency}`,
     )
@@ -65,9 +66,7 @@ export function CartDrawer() {
   const [submitting, setSubmitting] = useState(false);
   const [placed, setPlaced] = useState<{ id: number | null; url: string } | null>(null);
 
-  useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : "";
-  }, [isOpen]);
+  useScrollLock(isOpen);
 
   useEffect(() => {
     if (!isOpen) {
@@ -282,7 +281,7 @@ export function CartDrawer() {
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium mb-1 leading-snug">{name}</h4>
                           <div className="text-xs text-[var(--ink-muted)] mb-3">
-                            {line.color} · {d.cart.size_prefix} {line.size}
+                            {colorLabel(line.color, locale)} · {d.cart.size_prefix} {line.size}
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex border border-[var(--line)]">
@@ -373,7 +372,7 @@ export function CartDrawer() {
                             <span className="num">{line.qty}×</span>{" "}
                             {pickLocale(product.name, locale)}
                             <span className="text-[var(--ink-muted)]">
-                              {" "}· {line.color} / {line.size}
+                              {" "}· {colorLabel(line.color, locale)} / {line.size}
                             </span>
                           </span>
                           <span className="num whitespace-nowrap">

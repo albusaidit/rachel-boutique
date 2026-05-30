@@ -10,23 +10,22 @@ import {
 } from "../_lib/products";
 import { useLocale } from "../_lib/i18n";
 import { useStorefrontUI } from "../_lib/storefront-ui";
+import { useScrollLock } from "../_lib/scroll-lock";
 import { ProductCard } from "./ProductCard";
 
 export function BrowseOverlay() {
   const { browse, closeBrowse, openQuickView } = useStorefrontUI();
   const { locale, d } = useLocale();
 
+  useScrollLock(!!browse);
+
   useEffect(() => {
     if (!browse) return;
-    document.body.style.overflow = "hidden";
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeBrowse();
     };
     window.addEventListener("keydown", handler);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handler);
-    };
+    return () => window.removeEventListener("keydown", handler);
   }, [browse, closeBrowse]);
 
   const list = browse
