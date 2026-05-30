@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bodoni_Moda, Inter, Noto_Naskh_Arabic, Noto_Kufi_Arabic } from "next/font/google";
 import { CartProvider } from "./_lib/cart";
 import { LocaleProvider } from "./_lib/i18n";
+import { StorefrontUIProvider } from "./_lib/storefront-ui";
 import { ToastProvider } from "./_components/Toast";
 import "./boutique.css";
 
@@ -44,7 +45,9 @@ export default function BoutiqueLayout({ children }: { children: React.ReactNode
       className={`${display.variable} ${sans.variable} ${arabic.variable} ${arabicDisplay.variable} boutique-root`}
     >
       <CartProvider>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <StorefrontUIProvider>{children}</StorefrontUIProvider>
+        </ToastProvider>
       </CartProvider>
     </LocaleProvider>
   );

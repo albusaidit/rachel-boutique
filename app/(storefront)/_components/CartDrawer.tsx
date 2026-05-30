@@ -55,18 +55,27 @@ export function CartDrawer() {
   } = useCart();
   const { locale, d } = useLocale();
   const items = lineWithProduct();
-  const [stage, setStage] = useState<"cart" | "checkout">("cart");
+  const [stage, setStage] = useState<"cart" | "checkout" | "success">("cart");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [attempted, setAttempted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [placed, setPlaced] = useState<{ id: number | null; url: string } | null>(null);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) setStage("cart");
+    if (!isOpen) {
+      setStage("cart");
+      setTouched({});
+      setAttempted(false);
+      setPlaced(null);
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -79,14 +88,33 @@ export function CartDrawer() {
 
   const needToFreeShip = Math.max(0, SHIPPING_FREE_AT - subtotal);
   const shipProgress = Math.min(1, subtotal / SHIPPING_FREE_AT);
-  const canCheckout = name.trim() && phone.trim().length >= 8 && city.trim();
   const priceLocaleTag = locale === "ar" ? "ar-SA" : locale === "fr" ? "fr-FR" : "en-US";
 
+  const errors = {
+    name: name.trim() ? null : d.cart.err_name,
+    phone: phone.replace(/\D/g, "").length >= 8 ? null : d.cart.err_phone,
+    email:
+      !email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+        ? null
+        : d.cart.err_email,
+    city: city.trim() ? null : d.cart.err_city,
+  };
+  const canCheckout = !errors.name && !errors.phone && !errors.email && !errors.city;
+  const showErr = (field: keyof typeof errors) =>
+    (touched[field] || attempted) && errors[field];
+
   const sendToWhatsApp = async () => {
+    setAttempted(true);
+    if (!canCheckout || submitting) return;
     const text = whatsappMessage(items, subtotal, name, phone, city, d, locale);
     const url = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(text)}`;
+    // Open synchronously, inside the click gesture, so popup blockers don't kill it.
+    const win = window.open(url, "_blank");
+
+    setSubmitting(true);
+    let id: number | null = null;
     try {
-      await createOrderAction({
+      const res = await createOrderAction({
         customerName: name,
         phone,
         email: email.trim() || undefined,
@@ -103,10 +131,15 @@ export function CartDrawer() {
           unitPrice: product.price,
         })),
       });
+      if (res.ok) id = res.id;
     } catch {
-      // non-fatal; still open WhatsApp so the customer can place the order
+      // non-fatal; the WhatsApp message is the order of record
     }
-    window.open(url, "_blank");
+    setSubmitting(false);
+    // If the popup was blocked, keep the URL so the success screen can offer it again.
+    setPlaced({ id, url: win ? "" : url });
+    clear();
+    setStage("success");
   };
 
   return (
@@ -132,11 +165,17 @@ export function CartDrawer() {
             <header className="flex items-center justify-between px-6 py-5 border-b border-[var(--line)]">
               <div>
                 <div className="font-serif text-2xl tracking-tight">
-                  {stage === "cart" ? d.cart.title : d.cart.checkout_title}
+                  {stage === "success"
+                    ? d.cart.success_title
+                    : stage === "cart"
+                      ? d.cart.title
+                      : d.cart.checkout_title}
                 </div>
-                <div className="text-xs text-[var(--ink-muted)] num">
-                  {d.cart.count_unit(itemCount)}
-                </div>
+                {stage !== "success" && (
+                  <div className="text-xs text-[var(--ink-muted)] num">
+                    {d.cart.count_unit(itemCount)}
+                  </div>
+                )}
               </div>
               <button
                 onClick={close}
@@ -149,7 +188,45 @@ export function CartDrawer() {
               </button>
             </header>
 
-            {items.length === 0 ? (
+            {stage === "success" ? (
+              <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+                <motion.div
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 220, damping: 18 }}
+                  className="w-16 h-16 rounded-full bg-[#e9f5ec] flex items-center justify-center mb-5"
+                >
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1e5a2e" strokeWidth="2">
+                    <path d="m5 13 4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </motion.div>
+                <h3 className="font-serif text-2xl mb-2">{d.cart.success_title}</h3>
+                {placed?.id != null && (
+                  <div className="text-xs tracking-[0.25em] uppercase text-[var(--ink-muted)] num mb-3">
+                    {d.cart.success_order(placed.id)}
+                  </div>
+                )}
+                <p className="text-[var(--ink-muted)] text-sm mb-6 max-w-[34ch] leading-relaxed">
+                  {d.cart.success_body}
+                </p>
+                {placed?.url && (
+                  <a
+                    href={placed.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-[#1e5a2e] underline mb-6"
+                  >
+                    {d.cart.whatsapp_reopen}
+                  </a>
+                )}
+                <button
+                  onClick={close}
+                  className="bg-[var(--ink)] text-white px-8 py-3 text-xs tracking-[0.3em] uppercase hover:bg-[var(--ink-soft)] transition-colors"
+                >
+                  {d.cart.continue_shopping}
+                </button>
+              </div>
+            ) : items.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
                 <div className="w-16 h-16 rounded-full bg-[var(--cream)] flex items-center justify-center mb-5">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="text-[var(--ink)]">
@@ -281,6 +358,32 @@ export function CartDrawer() {
                   >
                     <span>{locale === "ar" ? "←" : "→"}</span> {d.cart.back_to_cart}
                   </button>
+
+                  <div className="bg-[var(--cream)] border border-[var(--line)]">
+                    <div className="px-4 py-2.5 text-[11px] tracking-[0.25em] uppercase text-[var(--ink-muted)] font-medium border-b border-[var(--line)]">
+                      {d.cart.summary_title} · {d.cart.count_unit(itemCount)}
+                    </div>
+                    <ul className="divide-y divide-[var(--line)]">
+                      {items.map(({ line, product }) => (
+                        <li
+                          key={`${line.productId}-${line.size}-${line.color}`}
+                          className="flex items-center justify-between gap-3 px-4 py-2.5 text-xs"
+                        >
+                          <span className="min-w-0 truncate">
+                            <span className="num">{line.qty}×</span>{" "}
+                            {pickLocale(product.name, locale)}
+                            <span className="text-[var(--ink-muted)]">
+                              {" "}· {line.color} / {line.size}
+                            </span>
+                          </span>
+                          <span className="num whitespace-nowrap">
+                            {(product.price * line.qty).toLocaleString(priceLocaleTag)} {d.product.currency}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
                   <div>
                     <label className="block text-[11px] tracking-[0.25em] uppercase text-[var(--ink-muted)] mb-2 font-medium">
                       {d.cart.label_name}
@@ -288,9 +391,16 @@ export function CartDrawer() {
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full border border-[var(--line)] px-4 py-3 text-sm outline-none focus:border-[var(--ink)]"
+                      onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+                      aria-invalid={!!showErr("name")}
+                      className={`w-full border px-4 py-3 text-sm outline-none focus:border-[var(--ink)] ${
+                        showErr("name") ? "border-red-400" : "border-[var(--line)]"
+                      }`}
                       placeholder={d.cart.placeholder_name}
                     />
+                    {showErr("name") && (
+                      <p className="mt-1.5 text-xs text-red-500">{errors.name}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[11px] tracking-[0.25em] uppercase text-[var(--ink-muted)] mb-2 font-medium">
@@ -299,11 +409,18 @@ export function CartDrawer() {
                     <input
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full border border-[var(--line)] px-4 py-3 text-sm outline-none focus:border-[var(--ink)] num"
+                      onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+                      aria-invalid={!!showErr("phone")}
+                      className={`w-full border px-4 py-3 text-sm outline-none focus:border-[var(--ink)] num ${
+                        showErr("phone") ? "border-red-400" : "border-[var(--line)]"
+                      }`}
                       placeholder={d.cart.placeholder_phone}
                       dir="ltr"
                       inputMode="tel"
                     />
+                    {showErr("phone") && (
+                      <p className="mt-1.5 text-xs text-red-500">{errors.phone}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[11px] tracking-[0.25em] uppercase text-[var(--ink-muted)] mb-2 font-medium">
@@ -316,11 +433,18 @@ export function CartDrawer() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full border border-[var(--line)] px-4 py-3 text-sm outline-none focus:border-[var(--ink)]"
+                      onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                      aria-invalid={!!showErr("email")}
+                      className={`w-full border px-4 py-3 text-sm outline-none focus:border-[var(--ink)] ${
+                        showErr("email") ? "border-red-400" : "border-[var(--line)]"
+                      }`}
                       placeholder="you@example.com"
                       inputMode="email"
                       dir="ltr"
                     />
+                    {showErr("email") && (
+                      <p className="mt-1.5 text-xs text-red-500">{errors.email}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[11px] tracking-[0.25em] uppercase text-[var(--ink-muted)] mb-2 font-medium">
@@ -329,9 +453,16 @@ export function CartDrawer() {
                     <input
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      className="w-full border border-[var(--line)] px-4 py-3 text-sm outline-none focus:border-[var(--ink)]"
+                      onBlur={() => setTouched((t) => ({ ...t, city: true }))}
+                      aria-invalid={!!showErr("city")}
+                      className={`w-full border px-4 py-3 text-sm outline-none focus:border-[var(--ink)] ${
+                        showErr("city") ? "border-red-400" : "border-[var(--line)]"
+                      }`}
                       placeholder={d.cart.placeholder_city}
                     />
+                    {showErr("city") && (
+                      <p className="mt-1.5 text-xs text-red-500">{errors.city}</p>
+                    )}
                   </div>
 
                   <div className="bg-[var(--cream)] p-4 border border-[var(--line)] flex items-start gap-3 text-xs">
@@ -354,13 +485,25 @@ export function CartDrawer() {
                   </div>
                   <button
                     onClick={sendToWhatsApp}
-                    disabled={!canCheckout}
+                    disabled={!canCheckout || submitting}
                     className="w-full bg-[#25D366] text-white py-4 text-sm font-semibold tracking-wider uppercase hover:bg-[#1FB855] transition-colors flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor">
-                      <path d="M16 2C8.3 2 2 8.3 2 16c0 2.5.7 4.9 1.9 7L2 30l7.2-1.9c2 1.1 4.4 1.8 6.8 1.8 7.7 0 14-6.3 14-14S23.7 2 16 2zm8.1 19.9c-.3 1-2 1.9-2.8 2-.7.1-1.6.1-2.6-.2-.6-.2-1.4-.5-2.4-.9-4.2-1.8-7-6-7.2-6.3-.2-.3-1.7-2.2-1.7-4.3 0-2 1-3 1.4-3.4.4-.4.8-.5 1.1-.5h.8c.2 0 .6 0 .9.7.3.8 1 2.9 1.1 3.1.1.2.1.4 0 .7-.1.2-.2.4-.4.6-.2.2-.4.5-.5.7-.2.2-.4.4-.2.8.2.4 1 1.6 2.1 2.6 1.5 1.3 2.7 1.7 3.1 1.9.4.2.6.2.8-.1.2-.3.9-1 1.1-1.4.2-.4.4-.3.8-.2.3.1 2.2 1 2.6 1.2.4.2.6.3.7.4.2.3.2 1.1-.1 2.1z"/>
-                    </svg>
-                    {d.cart.send_via_whatsapp}
+                    {submitting ? (
+                      <>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="animate-spin">
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" strokeOpacity="0.3" />
+                          <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                        </svg>
+                        {d.cart.sending}
+                      </>
+                    ) : (
+                      <>
+                        <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor">
+                          <path d="M16 2C8.3 2 2 8.3 2 16c0 2.5.7 4.9 1.9 7L2 30l7.2-1.9c2 1.1 4.4 1.8 6.8 1.8 7.7 0 14-6.3 14-14S23.7 2 16 2zm8.1 19.9c-.3 1-2 1.9-2.8 2-.7.1-1.6.1-2.6-.2-.6-.2-1.4-.5-2.4-.9-4.2-1.8-7-6-7.2-6.3-.2-.3-1.7-2.2-1.7-4.3 0-2 1-3 1.4-3.4.4-.4.8-.5 1.1-.5h.8c.2 0 .6 0 .9.7.3.8 1 2.9 1.1 3.1.1.2.1.4 0 .7-.1.2-.2.4-.4.6-.2.2-.4.5-.5.7-.2.2-.4.4-.2.8.2.4 1 1.6 2.1 2.6 1.5 1.3 2.7 1.7 3.1 1.9.4.2.6.2.8-.1.2-.3.9-1 1.1-1.4.2-.4.4-.3.8-.2.3.1 2.2 1 2.6 1.2.4.2.6.3.7.4.2.3.2 1.1-.1 2.1z"/>
+                        </svg>
+                        {d.cart.send_via_whatsapp}
+                      </>
+                    )}
                   </button>
                 </footer>
               </>
