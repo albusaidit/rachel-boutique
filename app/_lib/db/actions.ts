@@ -577,6 +577,18 @@ export async function bulkImportProductsAction(
       .where(eq(schema.products.id, id))
       .limit(1);
 
+    if (existing.length > 0 && existing[0].deletedAt) {
+      // Row was soft-deleted by an admin — don't resurrect via import.
+      // Admin must explicitly restore from /admin/audit.
+      results.push({
+        rowNumber,
+        id,
+        status: "skipped",
+        error: "soft-deleted — restore from audit first",
+      });
+      continue;
+    }
+
     if (existing.length === 0) {
       // CREATE — need full required fields
       const slug = (row.slug ?? "").trim() || id;

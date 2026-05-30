@@ -100,16 +100,23 @@ export async function GET(req: Request) {
   let created = 0;
   let updated = 0;
   let errors = 0;
+  let skippedDeleted = 0;
   for (const row of rows) {
     if (!row.id || !/^[a-z0-9-]+$/.test(row.id)) {
       errors += 1;
       continue;
     }
     const existing = await db
-      .select({ id: schema.products.id })
+      .select({ id: schema.products.id, deletedAt: schema.products.deletedAt })
       .from(schema.products)
       .where(eq(schema.products.id, row.id))
       .limit(1);
+    if (existing.length > 0 && existing[0].deletedAt) {
+      // Row was soft-deleted by an admin. Don't resurrect from the sheet;
+      // admin must explicitly restore via /admin/audit.
+      skippedDeleted += 1;
+      continue;
+    }
     if (existing.length === 0) {
       const nameEn = row.nameEn?.trim();
       const nameAr = row.nameAr?.trim();
@@ -213,6 +220,7 @@ export async function GET(req: Request) {
     created,
     updated,
     errors,
+    skippedDeleted,
     total: rows.length,
   });
 }
