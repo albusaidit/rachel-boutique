@@ -172,6 +172,10 @@ const dictionaries = {
       whatsapp_reopen: "لم يُفتح واتساب؟ اضغطي هنا",
       continue_shopping: "متابعة التسوّق",
     },
+    browse: {
+      empty_title: "لا توجد قطع بعد",
+      empty_sub: "هذه الفئة قيد التجهيز. تصفّحي باقي المجموعة.",
+    },
   },
   en: {
     dir: "ltr" as const,
@@ -338,6 +342,10 @@ const dictionaries = {
       whatsapp_reopen: "WhatsApp didn't open? Tap here",
       continue_shopping: "Continue shopping",
     },
+    browse: {
+      empty_title: "Nothing here yet",
+      empty_sub: "This category is being curated. Explore the rest of the collection.",
+    },
   },
   fr: {
     dir: "ltr" as const,
@@ -503,6 +511,10 @@ const dictionaries = {
       success_order: (id: number) => `Commande n° ${id}`,
       whatsapp_reopen: "WhatsApp ne s'est pas ouvert ? Cliquez ici",
       continue_shopping: "Continuer mes achats",
+    },
+    browse: {
+      empty_title: "Rien pour l'instant",
+      empty_sub: "Cette catégorie est en cours de préparation. Découvrez le reste de la collection.",
     },
   },
 } as const;

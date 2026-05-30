@@ -3,10 +3,10 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { products, type Product } from "../_lib/products";
+import { products } from "../_lib/products";
 import { useLocale } from "../_lib/i18n";
+import { useStorefrontUI } from "../_lib/storefront-ui";
 import { ProductCard } from "./ProductCard";
-import { QuickView } from "./QuickView";
 
 type SortKey = "featured" | "new" | "priceLow" | "priceHigh";
 type FilterKey = "all" | "new" | "sale" | "bestseller";
@@ -24,12 +24,12 @@ export function ProductGrid({
   ids?: string[];
 }) {
   const { d } = useLocale();
+  const { openQuickView } = useStorefrontUI();
   const params = useSearchParams();
   const editable = params.get("editable") === "1";
   const [filter, setFilter] = useState<FilterKey>("all");
   const [sort, setSort] = useState<SortKey>("featured");
   const [sortOpen, setSortOpen] = useState(false);
-  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
 
   const sectionTitles = {
     new: { t: d.sections.new_title, s: d.sections.new_sub },
@@ -144,14 +144,12 @@ export function ProductGrid({
           <ProductCard
             key={p.id}
             product={p}
-            onQuickView={setQuickViewProduct}
+            onQuickView={openQuickView}
             index={i}
             editable={editable}
           />
         ))}
       </div>
-
-      <QuickView product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
     </section>
   );
 }

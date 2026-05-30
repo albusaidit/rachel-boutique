@@ -5,12 +5,14 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { products, categoryTree, pickLocale, type CategoryKey } from "../_lib/products";
 import { LOCALES, useLocale, type Locale } from "../_lib/i18n";
+import { useStorefrontUI } from "../_lib/storefront-ui";
 import { BrandMark } from "./BrandMark";
 
 const LOCALE_LABEL: Record<Locale, string> = { ar: "AR", en: "EN", fr: "FR" };
 
 export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { locale, setLocale, d } = useLocale();
+  const { openQuickView, openBrowse } = useStorefrontUI();
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<CategoryKey | null>(null);
 
@@ -109,6 +111,7 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
                         onClick={() => {
                           setQuery("");
                           onClose();
+                          openQuickView(p);
                         }}
                         className="w-full flex gap-3 items-center text-start hover:bg-[var(--cream)] p-2 rounded transition-colors"
                       >
@@ -130,14 +133,20 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
 
             <nav className="py-3">
               <button
-                onClick={onClose}
+                onClick={() => {
+                  onClose();
+                  openBrowse({ type: "tag", key: "new" });
+                }}
                 className="w-full flex justify-between items-center px-7 py-3 text-sm font-medium tracking-wide text-[var(--ink)] hover:bg-[var(--cream)] transition-colors"
               >
                 <span>{d.side_menu.new_this_week}</span>
                 <span className="text-[var(--ink-faint)] rtl:rotate-180">›</span>
               </button>
               <button
-                onClick={onClose}
+                onClick={() => {
+                  onClose();
+                  openBrowse({ type: "tag", key: "sale" });
+                }}
                 className="w-full flex justify-between items-center px-7 py-3 text-sm font-medium tracking-wide text-[var(--ink)] hover:bg-[var(--cream)] transition-colors border-b border-[var(--line)] mb-2"
               >
                 <span>{d.side_menu.sale_quick}</span>
@@ -157,8 +166,12 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
                   >
                     <button
                       onClick={() => {
-                        if (hasSubs) setExpanded(isExpanded ? null : cat.key);
-                        else onClose();
+                        if (hasSubs) {
+                          setExpanded(isExpanded ? null : cat.key);
+                        } else {
+                          onClose();
+                          openBrowse({ type: "category", key: cat.key });
+                        }
                       }}
                       className="w-full flex justify-between items-center px-7 py-3.5 text-[15px] font-medium tracking-wide hover:bg-[var(--cream)] transition-colors"
                     >
@@ -188,7 +201,10 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
                           {cat.subcategories.map((sub) => (
                             <button
                               key={sub.key}
-                              onClick={onClose}
+                              onClick={() => {
+                                onClose();
+                                openBrowse({ type: "subcategory", key: sub.key });
+                              }}
                               className="w-full text-start ps-14 pe-7 py-2.5 text-[13px] text-[var(--ink-soft)] hover:text-[var(--brand)] hover:bg-white transition-colors"
                             >
                               {sub[locale] || sub.en}
