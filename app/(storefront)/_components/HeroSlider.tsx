@@ -3,19 +3,20 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
-import { heroSlides, pickLocale } from "../_lib/products";
+import { heroSlides as defaultHeroSlides, pickLocale, type HeroSlide } from "../_lib/products";
 import { useLocale } from "../_lib/i18n";
 
 const AUTOPLAY_MS = 6500;
 
-export function HeroSlider() {
+export function HeroSlider({ slides }: { slides?: HeroSlide[] }) {
   const { locale, d } = useLocale();
+  const list = slides && slides.length > 0 ? slides : defaultHeroSlides;
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
 
   const go = useCallback(
-    (dir: 1 | -1) => setI((v) => (v + dir + heroSlides.length) % heroSlides.length),
-    [],
+    (dir: 1 | -1) => setI((v) => (v + dir + list.length) % list.length),
+    [list.length],
   );
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export function HeroSlider() {
     return () => clearTimeout(t);
   }, [i, paused, go]);
 
-  const slide = heroSlides[i];
+  const slide = list[i];
   const alignMap = {
     start: "items-start text-start",
     center: "items-center text-center",
@@ -98,7 +99,7 @@ export function HeroSlider() {
       </div>
 
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex gap-2">
-        {heroSlides.map((_, idx) => (
+        {list.map((_, idx) => (
           <button
             key={idx}
             onClick={() => setI(idx)}

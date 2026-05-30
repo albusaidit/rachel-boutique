@@ -11,7 +11,7 @@ const HEADER = {
   fr: { eyebrow: "Acheter par catégorie", title: "Tout ce que vous cherchez, sélectionné", sections: "sections" },
 } as const;
 
-export function CategoryBanners() {
+export function CategoryBanners({ imageOverrides }: { imageOverrides?: Record<string, string> }) {
   const { locale } = useLocale();
   const h = HEADER[locale];
   return (
@@ -43,7 +43,7 @@ export function CategoryBanners() {
               className="group relative aspect-[4/5] md:aspect-square overflow-hidden bg-[var(--cream)] cursor-pointer"
             >
               <Image
-                src={c.heroImage}
+                src={imageOverrides?.[c.key] || c.heroImage}
                 alt={label}
                 fill
                 sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"

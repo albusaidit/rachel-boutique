@@ -14,26 +14,27 @@ import {
   type SectionEntry,
   type SectionKey,
 } from "@/app/_lib/db/homepage-layout";
+import { getHomepageContent, type HomepageContent } from "@/app/_lib/db/homepage-content";
 
 const newArrivals = products.filter((p) => p.tags.includes("new")).map((p) => p.id);
 const bestsellers = products.filter((p) => p.tags.includes("bestseller")).map((p) => p.id);
 const perfumeHighlights = products.filter((p) => p.category === "perfumes").map((p) => p.id);
 const beautyHighlights = products.filter((p) => p.category === "beauty").map((p) => p.id);
 
-function renderSection(key: SectionKey) {
+function renderSection(key: SectionKey, content: HomepageContent) {
   switch (key) {
     case "brand_reveal":
       return <BrandReveal key={key} />;
     case "hero":
-      return <HeroSlider key={key} />;
+      return <HeroSlider key={key} slides={content.hero} />;
     case "marquee":
-      return <Marquee key={key} />;
+      return <Marquee key={key} items={content.marquee} />;
     case "category_banners":
-      return <CategoryBanners key={key} />;
+      return <CategoryBanners key={key} imageOverrides={content.categoryBanners} />;
     case "new_arrivals":
       return <ProductGrid key={key} section="new" ids={newArrivals} />;
     case "story":
-      return <Story key={key} />;
+      return <Story key={key} content={content.story} />;
     case "bestsellers":
       return <ProductGrid key={key} section="bestsellers" ids={bestsellers} />;
     case "perfumes":
@@ -77,11 +78,14 @@ export default async function BoutiquePage({
   const params = await searchParams;
   const previewRaw = typeof params.preview === "string" ? params.preview : undefined;
   const preview = tryDecodePreview(previewRaw);
-  const layout = preview ?? (await getHomepageLayout());
+  const [layout, content] = await Promise.all([
+    preview ? Promise.resolve(preview) : getHomepageLayout(),
+    getHomepageContent(),
+  ]);
   return (
     <div id="top">
       <Header />
-      {layout.filter((s) => s.visible).map((s) => renderSection(s.key))}
+      {layout.filter((s) => s.visible).map((s) => renderSection(s.key, content))}
       <Footer />
       <CartDrawer />
     </div>

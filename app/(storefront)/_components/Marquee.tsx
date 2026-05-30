@@ -3,9 +3,11 @@
 import { motion } from "framer-motion";
 import { useLocale } from "../_lib/i18n";
 
-export function Marquee() {
-  const { d } = useLocale();
-  const items = d.marquee;
+export function Marquee({ items: itemsOverride }: { items?: { ar: string[]; en: string[]; fr: string[] } }) {
+  const { d, locale } = useLocale();
+  const items = itemsOverride && itemsOverride[locale]?.length > 0
+    ? itemsOverride[locale]
+    : d.marquee;
   const row = [...items, ...items, ...items];
   return (
     <div className="bg-[var(--ink)] text-white overflow-hidden py-3 border-y border-[var(--ink)]">

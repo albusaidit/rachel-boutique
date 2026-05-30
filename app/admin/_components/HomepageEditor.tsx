@@ -127,6 +127,12 @@ export function HomepageEditor({
         subtitle="Drag sections to reorder how the storefront homepage is laid out. Toggle the eye icon to hide a section without deleting it."
         actions={
           <>
+            <Link
+              href="/admin/homepage/content"
+              className="px-4 py-2 text-sm font-medium border border-[var(--a-line)] text-[var(--a-ink-soft)] rounded-sm hover:bg-[var(--a-line-soft)] inline-flex items-center gap-1.5"
+            >
+              Edit content
+            </Link>
             <a
               href="/"
               target="_blank"

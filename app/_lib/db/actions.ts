@@ -218,6 +218,17 @@ export async function quickUpdateProductAction(id: string, patch: ProductPatch) 
   return { ok: true };
 }
 
+export async function saveHomepageContentAction(content: unknown) {
+  await ensureAuth();
+  ensureDb();
+  const { saveHomepageContent } = await import("./homepage-content");
+  await saveHomepageContent(content as never);
+  revalidatePath("/");
+  revalidatePath("/admin/homepage/content");
+  revalidatePath("/admin/homepage");
+  return { ok: true };
+}
+
 export async function saveHomepageLayoutAction(
   layout: Array<{ key: string; visible: boolean }>,
 ) {

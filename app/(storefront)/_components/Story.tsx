@@ -5,8 +5,13 @@ import Image from "next/image";
 import { useRef } from "react";
 import { useLocale } from "../_lib/i18n";
 
-export function Story() {
+type Loc = { ar: string; en: string; fr?: string };
+type StoryOverride = { image?: string; eyebrow?: Loc; title?: Loc; body?: Loc };
+
+export function Story({ content }: { content?: StoryOverride }) {
   const { d, locale } = useLocale();
+  const pick = (loc?: Loc, fallback?: string) =>
+    loc ? (loc[locale] ?? loc.en ?? fallback ?? "") : (fallback ?? "");
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -23,7 +28,7 @@ export function Story() {
       <div className="grid grid-cols-1 md:grid-cols-2 min-h-[520px]">
         <motion.div style={{ y }} className="relative aspect-[4/5] md:aspect-auto md:min-h-[600px]">
           <Image
-            src="https://picsum.photos/seed/sr-story-atelier/1200/1500"
+            src={content?.image || "https://picsum.photos/seed/sr-story-atelier/1200/1500"}
             alt="RACHÉL atelier"
             fill
             sizes="(max-width: 768px) 100vw, 50vw"
@@ -40,17 +45,19 @@ export function Story() {
             className="max-w-lg"
           >
             <div className="text-[11px] tracking-[0.5em] uppercase text-[var(--ink-muted)] mb-5 font-medium font-sans-latin">
-              {d.story.eyebrow}
+              {pick(content?.eyebrow, d.story.eyebrow)}
             </div>
             <h2 className="font-serif text-4xl md:text-6xl font-light leading-[1.05] mb-6 tracking-tight">
-              {d.story.title_l1}<br />{d.story.title_l2}
+              {content?.title ? pick(content.title) : (<>{d.story.title_l1}<br />{d.story.title_l2}</>)}
             </h2>
             <p className="text-[var(--ink-soft)] text-base md:text-lg leading-relaxed mb-6">
-              {d.story.body_p1}
+              {pick(content?.body, d.story.body_p1)}
             </p>
-            <p className="text-[var(--ink-soft)] text-base md:text-lg leading-relaxed mb-8">
-              {d.story.body_p2}
-            </p>
+            {!content?.body && (
+              <p className="text-[var(--ink-soft)] text-base md:text-lg leading-relaxed mb-8">
+                {d.story.body_p2}
+              </p>
+            )}
             <motion.a
               href="#"
               whileHover={{ x: locale === "ar" ? -6 : 6 }}
