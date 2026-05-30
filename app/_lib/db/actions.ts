@@ -3,7 +3,35 @@
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "./client";
-import { isAuthed } from "@/app/admin/_lib/auth";
+import { getCurrentUser, isAuthed } from "@/app/admin/_lib/auth";
+import { logAuditEvent, type Actor } from "./audit-repo";
+
+async function currentActor(): Promise<Actor> {
+  const u = await getCurrentUser();
+  if (!u) return { id: null, username: null, role: null };
+  return { id: u.id, username: u.username, role: u.role };
+}
+
+async function snapshotProduct(id: string) {
+  const rows = await getDb()
+    .select({
+      id: schema.products.id,
+      nameEn: schema.products.nameEn,
+      nameAr: schema.products.nameAr,
+      price: schema.products.price,
+      compareAt: schema.products.compareAt,
+      stock: schema.products.stock,
+      category: schema.products.category,
+      subcategory: schema.products.subcategory,
+      tags: schema.products.tags,
+      images: schema.products.images,
+      archivedAt: schema.products.archivedAt,
+    })
+    .from(schema.products)
+    .where(eq(schema.products.id, id))
+    .limit(1);
+  return rows[0] ?? null;
+}
 
 async function ensureAuth() {
   if (!(await isAuthed())) {
@@ -57,11 +85,22 @@ export async function updateProductAction(id: string, formData: FormData) {
     images,
     updatedAt: new Date(),
   };
+  const actor = await currentActor();
+  const before = await snapshotProduct(id);
   await getDb().update(schema.products).set(update).where(eq(schema.products.id, id));
+  void logAuditEvent({
+    actor,
+    action: "product.updated",
+    targetType: "product",
+    targetId: id,
+    before,
+    after: { ...before, ...update },
+  });
   revalidatePath(`/admin/products/${id}`);
   revalidatePath("/admin/products");
   revalidatePath("/admin/inventory");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
   revalidatePath("/");
 }
 
@@ -99,6 +138,7 @@ export async function createProductAction(formData: FormData) {
     .map((v) => v.toString().trim())
     .filter(Boolean);
 
+  const actor = await currentActor();
   await getDb().insert(schema.products).values({
     id,
     slug,
@@ -120,9 +160,18 @@ export async function createProductAction(formData: FormData) {
     subcategory,
   });
 
+  void logAuditEvent({
+    actor,
+    action: "product.created",
+    targetType: "product",
+    targetId: id,
+    after: { nameEn, nameAr, price: getNum(formData, "price") ?? 0, category, subcategory },
+  });
+
   revalidatePath("/admin/products");
   revalidatePath("/admin/inventory");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
   revalidatePath("/");
   return { id };
 }
@@ -130,29 +179,78 @@ export async function createProductAction(formData: FormData) {
 export async function adjustStockAction(id: string, delta: number) {
   await ensureAuth();
   ensureDb();
+  const actor = await currentActor();
   const rows = await getDb()
     .select({ stock: schema.products.stock })
     .from(schema.products)
     .where(eq(schema.products.id, id))
     .limit(1);
   if (rows.length === 0) throw new Error("product not found");
-  const next = Math.max(0, rows[0].stock + delta);
+  const before = rows[0].stock;
+  const next = Math.max(0, before + delta);
   await getDb()
     .update(schema.products)
     .set({ stock: next, updatedAt: new Date() })
     .where(eq(schema.products.id, id));
+  void logAuditEvent({
+    actor,
+    action: "product.stock_adjusted",
+    targetType: "product",
+    targetId: id,
+    before: { stock: before },
+    after: { stock: next },
+    metadata: { delta },
+  });
   revalidatePath("/admin/inventory");
   revalidatePath("/admin/products");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
 }
 
 export async function deleteProductAction(id: string) {
   await ensureAuth();
   ensureDb();
-  await getDb().delete(schema.products).where(eq(schema.products.id, id));
+  const actor = await currentActor();
+  const before = await snapshotProduct(id);
+  const now = new Date();
+  await getDb()
+    .update(schema.products)
+    .set({ deletedAt: now, deletedBy: actor.id, updatedAt: now })
+    .where(eq(schema.products.id, id));
+  void logAuditEvent({
+    actor,
+    action: "product.deleted",
+    targetType: "product",
+    targetId: id,
+    before,
+    after: null,
+  });
   revalidatePath("/admin/products");
   revalidatePath("/admin/inventory");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
+  revalidatePath("/");
+}
+
+export async function restoreProductAction(id: string) {
+  await ensureAuth();
+  ensureDb();
+  const actor = await currentActor();
+  if (actor.role === "fulfillment") throw new Error("forbidden");
+  await getDb()
+    .update(schema.products)
+    .set({ deletedAt: null, deletedBy: null, updatedAt: new Date() })
+    .where(eq(schema.products.id, id));
+  void logAuditEvent({
+    actor,
+    action: "product.restored",
+    targetType: "product",
+    targetId: id,
+  });
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin");
+  revalidatePath("/admin/audit");
   revalidatePath("/");
 }
 
@@ -160,11 +258,24 @@ export async function bulkDeleteProductsAction(ids: string[]) {
   await ensureAuth();
   ensureDb();
   if (ids.length === 0) return { count: 0 };
+  const actor = await currentActor();
   const { inArray } = await import("drizzle-orm");
-  await getDb().delete(schema.products).where(inArray(schema.products.id, ids));
+  const now = new Date();
+  await getDb()
+    .update(schema.products)
+    .set({ deletedAt: now, deletedBy: actor.id, updatedAt: now })
+    .where(inArray(schema.products.id, ids));
+  void logAuditEvent({
+    actor,
+    action: "product.bulk_deleted",
+    targetType: "product",
+    targetId: ids.join(","),
+    metadata: { count: ids.length, ids },
+  });
   revalidatePath("/admin/products");
   revalidatePath("/admin/inventory");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
   revalidatePath("/");
   return { count: ids.length };
 }
@@ -209,11 +320,22 @@ function buildProductUpdate(patch: ProductPatch): Partial<typeof schema.products
 export async function quickUpdateProductAction(id: string, patch: ProductPatch) {
   await ensureAuth();
   ensureDb();
+  const actor = await currentActor();
+  const before = await snapshotProduct(id);
   const update = buildProductUpdate(patch);
   await getDb().update(schema.products).set(update).where(eq(schema.products.id, id));
+  void logAuditEvent({
+    actor,
+    action: "product.quick_updated",
+    targetType: "product",
+    targetId: id,
+    before,
+    after: { ...before, ...update },
+  });
   revalidatePath("/admin/products");
   revalidatePath("/admin/inventory");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
   revalidatePath("/");
   return { ok: true };
 }
@@ -569,6 +691,7 @@ export async function reorderProductsAction(orderedIds: string[]) {
   await ensureAuth();
   ensureDb();
   if (!Array.isArray(orderedIds) || orderedIds.length === 0) return { count: 0 };
+  const actor = await currentActor();
   const db = getDb();
   for (let i = 0; i < orderedIds.length; i += 1) {
     await db
@@ -576,9 +699,17 @@ export async function reorderProductsAction(orderedIds: string[]) {
       .set({ displayOrder: i, updatedAt: new Date() })
       .where(eq(schema.products.id, orderedIds[i]));
   }
+  void logAuditEvent({
+    actor,
+    action: "product.reordered",
+    targetType: "product",
+    targetId: orderedIds.join(","),
+    metadata: { count: orderedIds.length },
+  });
   revalidatePath("/admin/products");
   revalidatePath("/admin/products/order");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
   revalidatePath("/");
   return { count: orderedIds.length };
 }
@@ -597,10 +728,19 @@ export async function bulkUpdateProductsAction(
     await db.update(schema.products).set(update).where(eq(schema.products.id, id));
     count += 1;
   }
+  const actor = await currentActor();
+  void logAuditEvent({
+    actor,
+    action: "product.bulk_updated",
+    targetType: "product",
+    targetId: patches.map((p) => p.id).join(","),
+    metadata: { count, ids: patches.map((p) => p.id) },
+  });
   revalidatePath("/admin/products");
   revalidatePath("/admin/products/bulk");
   revalidatePath("/admin/inventory");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
   revalidatePath("/");
   return { count };
 }
@@ -644,22 +784,39 @@ export async function duplicateProductAction(id: string) {
     updatedAt: new Date(),
   });
 
+  const actor = await currentActor();
+  void logAuditEvent({
+    actor,
+    action: "product.duplicated",
+    targetType: "product",
+    targetId: newId,
+    metadata: { from: id },
+  });
   revalidatePath("/admin/products");
   revalidatePath("/admin/inventory");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
   return { id: newId };
 }
 
 export async function archiveProductAction(id: string, archive: boolean) {
   await ensureAuth();
   ensureDb();
+  const actor = await currentActor();
   await getDb()
     .update(schema.products)
     .set({ archivedAt: archive ? new Date() : null, updatedAt: new Date() })
     .where(eq(schema.products.id, id));
+  void logAuditEvent({
+    actor,
+    action: archive ? "product.archived" : "product.unarchived",
+    targetType: "product",
+    targetId: id,
+  });
   revalidatePath("/admin/products");
   revalidatePath("/admin/inventory");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
   revalidatePath("/");
 }
 
@@ -667,14 +824,23 @@ export async function bulkArchiveProductsAction(ids: string[], archive: boolean)
   await ensureAuth();
   ensureDb();
   if (ids.length === 0) return { count: 0 };
+  const actor = await currentActor();
   const { inArray } = await import("drizzle-orm");
   await getDb()
     .update(schema.products)
     .set({ archivedAt: archive ? new Date() : null, updatedAt: new Date() })
     .where(inArray(schema.products.id, ids));
+  void logAuditEvent({
+    actor,
+    action: "product.bulk_archived",
+    targetType: "product",
+    targetId: ids.join(","),
+    metadata: { count: ids.length, archive, ids },
+  });
   revalidatePath("/admin/products");
   revalidatePath("/admin/inventory");
   revalidatePath("/admin");
+  revalidatePath("/admin/audit");
   revalidatePath("/");
   return { count: ids.length };
 }

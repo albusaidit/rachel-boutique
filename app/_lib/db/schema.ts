@@ -32,6 +32,8 @@ export const products = pgTable(
     stock: integer("stock").notNull().default(0),
     displayOrder: integer("display_order").notNull().default(0),
     archivedAt: timestamp("archived_at"),
+    deletedAt: timestamp("deleted_at"),
+    deletedBy: integer("deleted_by"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

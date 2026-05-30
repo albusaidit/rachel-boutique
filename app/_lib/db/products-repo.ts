@@ -1,5 +1,5 @@
 import "server-only";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "./client";
 import {
   products as staticProducts,
@@ -29,14 +29,17 @@ function rowToProduct(r: typeof schema.products.$inferSelect): Product {
   };
 }
 
-export async function listProducts(): Promise<Product[]> {
+export async function listProducts(opts?: { includeDeleted?: boolean }): Promise<Product[]> {
   if (!isDbConfigured()) return staticProducts;
   try {
-    const rows = await getDb()
+    const base = getDb()
       .select()
       .from(schema.products)
       .orderBy(asc(schema.products.displayOrder), asc(schema.products.nameEn));
-    if (rows.length === 0) return staticProducts;
+    const rows = opts?.includeDeleted
+      ? await base
+      : await base.where(isNull(schema.products.deletedAt));
+    if (rows.length === 0 && !opts?.includeDeleted) return staticProducts;
     return rows.map(rowToProduct);
   } catch (err) {
     console.error("[products-repo] DB read failed, falling back to static:", err);
@@ -44,21 +47,30 @@ export async function listProducts(): Promise<Product[]> {
   }
 }
 
-export async function findProductRepo(idOrSlug: string): Promise<Product | null> {
+export async function findProductRepo(
+  idOrSlug: string,
+  opts?: { includeDeleted?: boolean },
+): Promise<Product | null> {
   if (!isDbConfigured()) {
     return staticProducts.find((p) => p.id === idOrSlug || p.slug === idOrSlug) ?? null;
   }
   try {
+    const filter = opts?.includeDeleted
+      ? eq(schema.products.id, idOrSlug)
+      : and(eq(schema.products.id, idOrSlug), isNull(schema.products.deletedAt));
     const byId = await getDb()
       .select()
       .from(schema.products)
-      .where(eq(schema.products.id, idOrSlug))
+      .where(filter)
       .limit(1);
     if (byId.length > 0) return rowToProduct(byId[0]);
+    const slugFilter = opts?.includeDeleted
+      ? eq(schema.products.slug, idOrSlug)
+      : and(eq(schema.products.slug, idOrSlug), isNull(schema.products.deletedAt));
     const bySlug = await getDb()
       .select()
       .from(schema.products)
-      .where(eq(schema.products.slug, idOrSlug))
+      .where(slugFilter)
       .limit(1);
     if (bySlug.length > 0) return rowToProduct(bySlug[0]);
     return null;

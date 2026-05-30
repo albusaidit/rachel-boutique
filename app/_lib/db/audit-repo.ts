@@ -9,7 +9,21 @@ export type AuditAction =
   | "order.deleted"
   | "order.restored"
   | "order.whatsapp_sent"
-  | "order.whatsapp_received";
+  | "order.whatsapp_received"
+  | "product.created"
+  | "product.updated"
+  | "product.quick_updated"
+  | "product.stock_adjusted"
+  | "product.archived"
+  | "product.unarchived"
+  | "product.deleted"
+  | "product.restored"
+  | "product.duplicated"
+  | "product.bulk_deleted"
+  | "product.bulk_archived"
+  | "product.bulk_updated"
+  | "product.imported"
+  | "product.reordered";
 
 export type AuditEntry = {
   id: number;
@@ -34,7 +48,7 @@ export type Actor = {
 export async function logAuditEvent(args: {
   actor: Actor;
   action: AuditAction;
-  targetType: "order";
+  targetType: "order" | "product";
   targetId: string;
   before?: unknown;
   after?: unknown;
@@ -148,6 +162,62 @@ export async function listDeletedOrders(): Promise<DeletedOrderSummary[]> {
       subtotal: r.subtotal,
       currency: r.currency,
       itemCount: Array.isArray(r.items) ? r.items.length : 0,
+      deletedAt: r.deletedAt ? r.deletedAt.toISOString() : "",
+      deletedBy: r.deletedBy ?? null,
+      deletedByUsername: r.deletedByUsername ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export type DeletedProductSummary = {
+  id: string;
+  slug: string;
+  nameEn: string;
+  nameAr: string;
+  price: number;
+  currency: string;
+  stock: number;
+  category: string;
+  image: string | null;
+  deletedAt: string;
+  deletedBy: number | null;
+  deletedByUsername: string | null;
+};
+
+export async function listDeletedProducts(): Promise<DeletedProductSummary[]> {
+  if (!isDbConfigured()) return [];
+  try {
+    const rows = await getDb()
+      .select({
+        id: schema.products.id,
+        slug: schema.products.slug,
+        nameEn: schema.products.nameEn,
+        nameAr: schema.products.nameAr,
+        price: schema.products.price,
+        currency: schema.products.currency,
+        stock: schema.products.stock,
+        category: schema.products.category,
+        images: schema.products.images,
+        deletedAt: schema.products.deletedAt,
+        deletedBy: schema.products.deletedBy,
+        deletedByUsername: schema.adminUsers.username,
+      })
+      .from(schema.products)
+      .leftJoin(schema.adminUsers, eq(schema.products.deletedBy, schema.adminUsers.id))
+      .where(isNotNull(schema.products.deletedAt))
+      .orderBy(desc(schema.products.deletedAt));
+    return rows.map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      nameEn: r.nameEn,
+      nameAr: r.nameAr,
+      price: r.price,
+      currency: r.currency,
+      stock: r.stock,
+      category: r.category,
+      image: Array.isArray(r.images) && r.images[0] ? r.images[0] : null,
       deletedAt: r.deletedAt ? r.deletedAt.toISOString() : "",
       deletedBy: r.deletedBy ?? null,
       deletedByUsername: r.deletedByUsername ?? null,
