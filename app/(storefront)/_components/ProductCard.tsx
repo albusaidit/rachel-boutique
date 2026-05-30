@@ -19,10 +19,12 @@ export function ProductCard({
   product,
   onQuickView,
   index = 0,
+  editable = false,
 }: {
   product: Product;
   onQuickView: (p: Product) => void;
   index?: number;
+  editable?: boolean;
 }) {
   const { add, open } = useCart();
   const { push } = useToast();
@@ -61,6 +63,22 @@ export function ProductCard({
     setTimeout(open, 200);
   };
 
+  const editHref = `/admin/products/${product.id}`;
+  const onCardClick = (e: React.MouseEvent) => {
+    if (editable) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Escape the preview iframe so the admin loads in the top window
+      if (typeof window !== "undefined" && window.top) {
+        window.top.location.href = editHref;
+      } else {
+        window.location.href = editHref;
+      }
+      return;
+    }
+    onQuickView(product);
+  };
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 24 }}
@@ -69,8 +87,9 @@ export function ProductCard({
       transition={{ duration: 0.5, delay: Math.min(index * 0.05, 0.3), ease: "easeOut" }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={() => onQuickView(product)}
-      className="group cursor-pointer"
+      onClick={onCardClick}
+      className={`group cursor-pointer ${editable ? "ring-2 ring-transparent hover:ring-[#7A1632] hover:ring-offset-2 rounded-sm transition-all" : ""}`}
+      title={editable ? `Edit ${name}` : undefined}
     >
       <div className="relative aspect-[3/4] overflow-hidden bg-[var(--cream)] mb-3">
         <Image
@@ -104,6 +123,19 @@ export function ProductCard({
           </div>
         )}
 
+        {editable && (
+          <div
+            className="absolute top-3 z-10 bg-[#7A1632] text-white px-2.5 py-1 text-[10px] tracking-[0.2em] uppercase font-semibold flex items-center gap-1.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ insetInlineEnd: "0.75rem" }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+            </svg>
+            Edit
+          </div>
+        )}
+
         {soldOut && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/10">
             <div className="bg-black/80 text-white px-6 py-2 text-xs tracking-[0.3em] uppercase">
@@ -112,7 +144,7 @@ export function ProductCard({
           </div>
         )}
 
-        {!soldOut && (
+        {!soldOut && !editable && (
           <motion.button
             onClick={quickAdd}
             initial={false}

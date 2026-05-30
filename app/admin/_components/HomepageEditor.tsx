@@ -53,7 +53,7 @@ export function HomepageEditor({
     );
     if (!token) return;
     const t = window.setTimeout(() => {
-      setPreviewSrc(`/?preview=${token}`);
+      setPreviewSrc(`/?preview=${token}&editable=1`);
       setPreviewKey((k) => k + 1);
     }, 250);
     return () => window.clearTimeout(t);
@@ -244,8 +244,13 @@ export function HomepageEditor({
 
         <section className="bg-[var(--a-surface)] border border-[var(--a-line)] overflow-hidden flex flex-col">
           <div className="px-4 py-2.5 border-b border-[var(--a-line)] flex items-center justify-between gap-2">
-            <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
-              Live preview
+            <div>
+              <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
+                Live preview
+              </div>
+              <div className="text-[10px] text-[var(--a-ink-faint)] mt-0.5">
+                Hover a product → click to edit it
+              </div>
             </div>
             <a
               href={previewSrc || "/"}

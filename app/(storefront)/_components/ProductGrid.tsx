@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { products, type Product } from "../_lib/products";
 import { useLocale } from "../_lib/i18n";
 import { ProductCard } from "./ProductCard";
@@ -23,6 +24,8 @@ export function ProductGrid({
   ids?: string[];
 }) {
   const { d } = useLocale();
+  const params = useSearchParams();
+  const editable = params.get("editable") === "1";
   const [filter, setFilter] = useState<FilterKey>("all");
   const [sort, setSort] = useState<SortKey>("featured");
   const [sortOpen, setSortOpen] = useState(false);
@@ -138,7 +141,13 @@ export function ProductGrid({
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 md:gap-x-5 gap-y-10 md:gap-y-14">
         {sorted.map((p, i) => (
-          <ProductCard key={p.id} product={p} onQuickView={setQuickViewProduct} index={i} />
+          <ProductCard
+            key={p.id}
+            product={p}
+            onQuickView={setQuickViewProduct}
+            index={i}
+            editable={editable}
+          />
         ))}
       </div>
 
