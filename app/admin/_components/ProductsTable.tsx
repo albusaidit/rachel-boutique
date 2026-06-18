@@ -45,20 +45,20 @@ function StockPill({
 }) {
   if (stock === 0) {
     return (
-      <span className="inline-flex items-center text-[10px] font-medium tracking-wide uppercase px-2 py-0.5 bg-[var(--a-danger-bg)] text-[var(--a-danger)]">
+      <span className="inline-flex items-center text-[10px] font-medium tracking-wide uppercase px-2 py-0.5 rounded-sm bg-[var(--a-danger-bg)] text-[var(--a-danger)]">
         {d.products.stock_out}
       </span>
     );
   }
   if (stock <= 5) {
     return (
-      <span className="inline-flex items-center text-[10px] font-medium tracking-wide uppercase px-2 py-0.5 bg-[var(--a-warning-bg)] text-[var(--a-warning)]">
+      <span className="inline-flex items-center text-[10px] font-medium tracking-wide uppercase px-2 py-0.5 rounded-sm bg-[var(--a-warning-bg)] text-[var(--a-warning)]">
         {d.products.stock_low}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center text-[10px] font-medium tracking-wide uppercase px-2 py-0.5 bg-[var(--a-success-bg)] text-[var(--a-success)]">
+    <span className="inline-flex items-center text-[10px] font-medium tracking-wide uppercase px-2 py-0.5 rounded-sm bg-[var(--a-success-bg)] text-[var(--a-success)]">
       {d.products.stock_in}
     </span>
   );
@@ -599,7 +599,7 @@ export function ProductsTable({
                         <StockPill stock={currentStock} d={d} />
                       </td>
                       <td className="px-4 py-3 text-end">
-                        <div className="inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <div className="inline-flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                           <Link
                             href={`/admin/products/${p.id}`}
                             className="px-2 py-1 text-xs border border-[var(--a-line)] rounded-sm text-[var(--a-ink-soft)] hover:bg-[var(--a-surface)]"

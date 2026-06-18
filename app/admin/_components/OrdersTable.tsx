@@ -312,7 +312,7 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                       {new Date(o.createdAt).toISOString().slice(0, 10)}
                     </td>
                     <td className="px-4 py-3 text-end whitespace-nowrap">
-                      <div className="inline-flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                      <div className="inline-flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                         <button
                           type="button"
                           onClick={() => setOpenOrder(o)}
