@@ -85,6 +85,20 @@ function Stat({
   );
 }
 
+function ActionIcon({ name }: { name: "bell" | "box" | "alert" | "trend" }) {
+  const p = {
+    bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></>,
+    box: <><path d="M21 8 12 3 3 8l9 5 9-5Z" /><path d="M3 8v8l9 5 9-5V8" /><path d="M12 13v8" /></>,
+    alert: <><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 17h.01" /></>,
+    trend: <><path d="m3 7 6 6 4-4 8 8" /><path d="M21 17v-6h-6" /></>,
+  } satisfies Record<string, React.ReactNode>;
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {p[name]}
+    </svg>
+  );
+}
+
 function ActionCard({
   tone,
   icon,
@@ -94,7 +108,7 @@ function ActionCard({
   hint,
 }: {
   tone: "danger" | "warning" | "info" | "success";
-  icon: string;
+  icon: "bell" | "box" | "alert" | "trend";
   count: number;
   label: string;
   href: string;
@@ -113,8 +127,8 @@ function ActionCard({
       href={href}
       className={`flex items-center gap-4 p-4 rounded-md border hover:opacity-90 transition-opacity ${toneClass}`}
     >
-      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/40 text-xl flex-shrink-0">
-        {icon}
+      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/40 flex-shrink-0">
+        <ActionIcon name={icon} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-2xl font-semibold leading-none num">{count}</div>
@@ -207,7 +221,7 @@ export function Dashboard({
               {orderStats.pending > 0 && (
                 <ActionCard
                   tone="warning"
-                  icon="🔔"
+                  icon="bell"
                   count={orderStats.pending}
                   label="Pending orders to confirm"
                   href="/admin/orders"
@@ -217,7 +231,7 @@ export function Dashboard({
               {orderStats.today > 0 && (
                 <ActionCard
                   tone="success"
-                  icon="📦"
+                  icon="box"
                   count={orderStats.today}
                   label="New orders today"
                   href="/admin/orders"
@@ -227,7 +241,7 @@ export function Dashboard({
               {stats.outOfStock > 0 && (
                 <ActionCard
                   tone="danger"
-                  icon="⚠"
+                  icon="alert"
                   count={stats.outOfStock}
                   label="Out of stock"
                   href="/admin/inventory"
@@ -237,7 +251,7 @@ export function Dashboard({
               {stats.lowStock > 0 && (
                 <ActionCard
                   tone="warning"
-                  icon="📉"
+                  icon="trend"
                   count={stats.lowStock}
                   label="Low stock (≤ 5)"
                   href="/admin/inventory"
@@ -294,7 +308,20 @@ export function Dashboard({
             </div>
           </div>
           <div className="px-2 pt-3 pb-4">
-            <AreaSparkline values={revenue} width={1200} height={180} responsive />
+            {total30d > 0 ? (
+              <AreaSparkline values={revenue} width={1200} height={180} responsive />
+            ) : (
+              <div className="h-[180px] flex flex-col items-center justify-center text-center gap-2 text-[var(--a-ink-muted)]">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="opacity-50">
+                  <path d="M3 3v18h18" />
+                  <path d="m7 14 4-4 3 3 5-6" />
+                </svg>
+                <div className="text-sm">{orderStats.total > 0 ? "Revenue will appear as orders are confirmed." : "Your revenue chart will appear here after your first order."}</div>
+                <Link href="/admin/orders" className="text-xs text-[var(--a-accent)] hover:underline">
+                  View orders →
+                </Link>
+              </div>
+            )}
           </div>
         </section>
 
