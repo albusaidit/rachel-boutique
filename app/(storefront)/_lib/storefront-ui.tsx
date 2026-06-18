@@ -13,11 +13,11 @@ import {
 import { useSearchParams } from "next/navigation";
 import {
   categoryTree,
-  findProduct,
   type CategoryKey,
   type Product,
   type SubCategoryKey,
 } from "./products";
+import { useProducts } from "./products-context";
 import { QuickView } from "../_components/QuickView";
 import { BrowseOverlay } from "../_components/BrowseOverlay";
 
@@ -87,13 +87,14 @@ function UrlSync({
   apply: (browse: BrowseTarget | null, product: Product | null) => void;
 }) {
   const params = useSearchParams();
+  const { findProduct } = useProducts();
   const shop = params.get(SHOP_PARAM);
   const productSlug = params.get(PRODUCT_PARAM);
 
   useEffect(() => {
     const product = productSlug ? (findProduct(productSlug) ?? null) : null;
     apply(targetFromKey(shop), product);
-  }, [shop, productSlug, apply]);
+  }, [shop, productSlug, apply, findProduct]);
 
   return null;
 }

@@ -5,8 +5,9 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useCart } from "../_lib/cart";
 import { useToast } from "./Toast";
-import { pickLocale, subcategoryLabel, type Product } from "../_lib/products";
+import { colorLabel, pickLocale, subcategoryLabel, type Product } from "../_lib/products";
 import { useLocale } from "../_lib/i18n";
+import { useScrollLock } from "../_lib/scroll-lock";
 
 export function QuickView({
   product,
@@ -22,15 +23,13 @@ export function QuickView({
   const [color, setColor] = useState<string | null>(null);
   const [imageIdx, setImageIdx] = useState(0);
 
+  useScrollLock(!!product);
+
   useEffect(() => {
     if (product) {
       setSize(null);
       setColor(product.colors[0].name);
       setImageIdx(0);
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = "";
-      };
     }
   }, [product]);
 
@@ -155,14 +154,14 @@ export function QuickView({
                   {product.colors.length > 0 && (
                     <div className="mb-6">
                       <div className="text-[11px] tracking-[0.25em] uppercase text-[var(--ink-muted)] mb-3 font-medium">
-                        {d.quick_view.color}: <span className="text-[var(--ink)]">{color}</span>
+                        {d.quick_view.color}: <span className="text-[var(--ink)]">{colorLabel(color ?? "", locale)}</span>
                       </div>
                       <div className="flex gap-3">
                         {product.colors.map((c) => (
                           <button
                             key={c.name}
                             onClick={() => setColor(c.name)}
-                            aria-label={c.name}
+                            aria-label={colorLabel(c.name, locale)}
                             className={`w-9 h-9 rounded-full ring-2 ring-offset-2 transition-all ${
                               color === c.name
                                 ? "ring-[var(--ink)]"

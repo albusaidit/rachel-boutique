@@ -3,8 +3,8 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { products } from "../_lib/products";
 import { useLocale } from "../_lib/i18n";
+import { useProducts } from "../_lib/products-context";
 import { useStorefrontUI } from "../_lib/storefront-ui";
 import { ProductCard } from "./ProductCard";
 
@@ -24,6 +24,7 @@ export function ProductGrid({
   ids?: string[];
 }) {
   const { d } = useLocale();
+  const { products } = useProducts();
   const { openQuickView } = useStorefrontUI();
   const params = useSearchParams();
   const editable = params.get("editable") === "1";

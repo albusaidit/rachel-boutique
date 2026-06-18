@@ -124,6 +124,43 @@ export const categoryLabel = (key: CategoryKey, locale: Locale = "ar"): string =
   return cat[locale] || cat.en || cat.ar;
 };
 
+// Colour names are stored in Arabic (the order's source of truth). This maps
+// them to en/fr for display only — the stored value never changes.
+const COLOR_NAMES: Record<string, { en: string; fr: string }> = {
+  "أسود": { en: "Black", fr: "Noir" },
+  "أبيض": { en: "White", fr: "Blanc" },
+  "عاجي": { en: "Ivory", fr: "Ivoire" },
+  "وردي": { en: "Pink", fr: "Rose" },
+  "كحلي": { en: "Navy", fr: "Marine" },
+  "زيتي": { en: "Olive", fr: "Olive" },
+  "ذهبي": { en: "Gold", fr: "Doré" },
+  "بيج": { en: "Beige", fr: "Beige" },
+  "وردي ذهبي": { en: "Rose gold", fr: "Or rose" },
+  "نيود": { en: "Nude", fr: "Nude" },
+  "كهرماني داكن": { en: "Dark amber", fr: "Ambre foncé" },
+  "كهرماني": { en: "Amber", fr: "Ambre" },
+  "كريمي": { en: "Cream", fr: "Crème" },
+  "كراميل": { en: "Caramel", fr: "Caramel" },
+  "كاميل": { en: "Camel", fr: "Camel" },
+  "شفاف": { en: "Clear", fr: "Transparent" },
+  "رمادي": { en: "Grey", fr: "Gris" },
+  "ذهبي شامبانيا": { en: "Champagne gold", fr: "Or champagne" },
+  "بيج رملي": { en: "Sand beige", fr: "Beige sable" },
+  "بني داكن": { en: "Dark brown", fr: "Brun foncé" },
+  "بني": { en: "Brown", fr: "Brun" },
+  "بنفسجي": { en: "Purple", fr: "Violet" },
+  "أزرق سماوي": { en: "Sky blue", fr: "Bleu ciel" },
+  "أخضر زمردي": { en: "Emerald", fr: "Émeraude" },
+  "أخضر داكن": { en: "Dark green", fr: "Vert foncé" },
+  "أخضر": { en: "Green", fr: "Vert" },
+};
+
+/** Localized display label for a colour name (stored value stays Arabic). */
+export const colorLabel = (name: string, locale: Locale = "ar"): string => {
+  if (locale === "ar") return name;
+  return COLOR_NAMES[name]?.[locale] ?? name;
+};
+
 export type Product = {
   id: string;
   slug: string;
