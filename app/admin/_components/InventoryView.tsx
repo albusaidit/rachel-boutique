@@ -24,26 +24,58 @@ function Card({
   title,
   count,
   tone,
+  targetId,
 }: {
   title: string;
   count: number;
   tone: "danger" | "warning" | "success";
+  targetId?: string;
 }) {
   const map = {
     danger: "var(--a-danger)",
     warning: "var(--a-warning)",
     success: "var(--a-success)",
   } as const;
-  return (
-    <div className="bg-[var(--a-surface)] border border-[var(--a-line)] p-5">
-      <div
-        className="text-[11px] tracking-[0.2em] uppercase font-medium"
-        style={{ color: map[tone] }}
-      >
-        {title}
+  const body = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className="text-[11px] tracking-[0.2em] uppercase font-medium"
+          style={{ color: map[tone] }}
+        >
+          {title}
+        </span>
+        {targetId && count > 0 && (
+          <span
+            aria-hidden
+            className="text-sm text-[var(--a-ink-faint)] group-hover:text-[var(--a-ink-muted)] transition-colors"
+          >
+            ↓
+          </span>
+        )}
       </div>
       <div className="text-3xl font-semibold mt-2 num">{count}</div>
-    </div>
+    </>
+  );
+
+  if (targetId) {
+    return (
+      <button
+        type="button"
+        onClick={() =>
+          document
+            .getElementById(targetId)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+        className="group text-start w-full bg-[var(--a-surface)] border border-[var(--a-line)] p-5 hover:border-[var(--a-ink-faint)] transition-colors cursor-pointer"
+      >
+        {body}
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-[var(--a-surface)] border border-[var(--a-line)] p-5">{body}</div>
   );
 }
 
@@ -112,16 +144,21 @@ export function InventoryView({
     emptyText,
     tone,
     restockAmount,
+    anchorId,
   }: {
     title: string;
     items: Row[];
     emptyText: string;
     tone: "danger" | "warning";
     restockAmount: number;
+    anchorId?: string;
   }) => {
     const cls = tone === "danger" ? "var(--a-danger)" : "var(--a-warning)";
     return (
-      <div className="bg-[var(--a-surface)] border border-[var(--a-line)]">
+      <div
+        id={anchorId}
+        className="bg-[var(--a-surface)] border border-[var(--a-line)] scroll-mt-24"
+      >
         <div className="px-5 py-3 border-b border-[var(--a-line)] flex items-center gap-2">
           <span aria-hidden style={{ color: cls }}>●</span>
           <h2 className="text-sm font-semibold tracking-wide">{title}</h2>
@@ -181,8 +218,8 @@ export function InventoryView({
         {!dbReady && <DemoBanner>{d.common.demo_banner}</DemoBanner>}
 
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card title={d.inventory.out} count={out.length} tone="danger" />
-          <Card title={d.inventory.low} count={low.length} tone="warning" />
+          <Card title={d.inventory.out} count={out.length} tone="danger" targetId="inv-out" />
+          <Card title={d.inventory.low} count={low.length} tone="warning" targetId="inv-low" />
           <div className="bg-[var(--a-surface)] border border-[var(--a-line)] p-5">
             <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
               {d.inventory.total_units}
@@ -205,6 +242,7 @@ export function InventoryView({
           emptyText={d.inventory.none_out}
           tone="danger"
           restockAmount={10}
+          anchorId="inv-out"
         />
         <Section
           title={d.inventory.low}
@@ -212,6 +250,7 @@ export function InventoryView({
           emptyText={d.inventory.none_low}
           tone="warning"
           restockAmount={10}
+          anchorId="inv-low"
         />
       </div>
     </>
