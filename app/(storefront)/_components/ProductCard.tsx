@@ -56,7 +56,7 @@ export function ProductCard({
     add({
       productId: product.id,
       size: product.sizes[0],
-      color: product.colors[0].name,
+      color: product.colors[0]?.name ?? "",
       qty: 1,
     });
     push(d.product.added_to_cart(name));

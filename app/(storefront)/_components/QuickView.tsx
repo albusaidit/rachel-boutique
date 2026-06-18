@@ -28,7 +28,7 @@ export function QuickView({
   useEffect(() => {
     if (product) {
       setSize(null);
-      setColor(product.colors[0].name);
+      setColor(product.colors[0]?.name ?? null);
       setImageIdx(0);
     }
   }, [product]);
@@ -51,7 +51,7 @@ export function QuickView({
       push(d.quick_view.pick_size_first, "error");
       return;
     }
-    add({ productId: product.id, size, color: color ?? product.colors[0].name, qty: 1 });
+    add({ productId: product.id, size, color: color ?? product.colors[0]?.name ?? "", qty: 1 });
     push(d.product.added_to_cart(productName));
     onClose();
     setTimeout(open, 300);
