@@ -46,14 +46,11 @@ export function ProductCreate({
   );
   const [images, setImages] = useState<string[]>([]);
   const [nameEn, setNameEn] = useState("");
-  const [advanced, setAdvanced] = useState(false);
-  const [idOverride, setIdOverride] = useState("");
-  const [slugOverride, setSlugOverride] = useState("");
 
-  // ID and slug are auto-generated from the English name so they never have to
-  // be typed by hand; the advanced panel lets you override them if needed.
-  const effectiveSlug = slugify(slugOverride || nameEn);
-  const effectiveId = slugify(idOverride || nameEn);
+  // ID and slug are always auto-generated from the English name — no manual
+  // editing, so there's nothing to get wrong.
+  const effectiveSlug = slugify(nameEn);
+  const effectiveId = effectiveSlug;
 
   const subcategories = useMemo(
     () => categories.find((c) => c.key === categoryKey)?.subcategories ?? [],
@@ -113,53 +110,17 @@ export function ProductCreate({
             <Field name="nameAr" label={d.product_detail.name_ar} dir="rtl" required />
             <Field name="nameFr" label={d.product_detail.name_fr} placeholder="—" />
 
-            {/* Auto-generated identifiers — submitted via hidden inputs. */}
+            {/* ID & slug are auto-generated from the name — submitted via hidden
+                inputs, no manual editing. Shown read-only just so you can see the
+                shareable link. */}
             <input type="hidden" name="id" value={effectiveId} />
             <input type="hidden" name="slug" value={effectiveSlug} />
-            <div className="rounded-sm border border-[var(--a-line)] bg-[var(--a-line-soft)]/40 px-3 py-2.5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-xs text-[var(--a-ink-muted)] min-w-0">
-                  <span className="tracking-[0.15em] uppercase">Web address</span>
-                  <div className="font-mono text-[var(--a-ink)] truncate">
-                    /product/{effectiveSlug || "…"}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAdvanced((v) => !v)}
-                  className="shrink-0 text-xs text-[var(--a-ink-muted)] hover:text-[var(--a-ink)] underline"
-                >
-                  {advanced ? "Done" : "Edit ID / link"}
-                </button>
+            <div className="rounded-sm border border-[var(--a-line)] bg-[var(--a-line-soft)]/40 px-3 py-2.5 text-xs text-[var(--a-ink-muted)]">
+              <span className="tracking-[0.15em] uppercase">Product link</span>
+              <span className="text-[var(--a-ink-faint)] normal-case tracking-normal"> · auto</span>
+              <div className="font-mono text-[var(--a-ink)] truncate mt-0.5">
+                rachele.store/?p={effectiveSlug || "…"}
               </div>
-              {advanced && (
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <label className="block">
-                    <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
-                      ID
-                    </span>
-                    <input
-                      value={idOverride}
-                      onChange={(e) => setIdOverride(e.target.value)}
-                      placeholder={slugify(nameEn) || "auto"}
-                      autoComplete="off"
-                      className="mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] focus:border-[var(--a-ink)] outline-none rounded-sm font-mono"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
-                      {d.product_detail.slug}
-                    </span>
-                    <input
-                      value={slugOverride}
-                      onChange={(e) => setSlugOverride(e.target.value)}
-                      placeholder={slugify(nameEn) || "auto"}
-                      autoComplete="off"
-                      className="mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] focus:border-[var(--a-ink)] outline-none rounded-sm font-mono"
-                    />
-                  </label>
-                </div>
-              )}
             </div>
           </Section>
 
