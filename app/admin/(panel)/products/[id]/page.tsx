@@ -20,6 +20,12 @@ export default async function AdminProductDetailPage({
     ar: c.ar,
     en: c.en,
     fr: c.fr,
+    subcategories: c.subcategories.map((s) => ({
+      key: s.key,
+      ar: s.ar,
+      en: s.en,
+      fr: s.fr,
+    })),
   }));
 
   return (
@@ -30,6 +36,7 @@ export default async function AdminProductDetailPage({
         name: product.name,
         description: product.description,
         category: product.category,
+        subcategory: product.subcategory,
         price: product.price,
         compareAt: product.compareAt,
         stock: product.stock,

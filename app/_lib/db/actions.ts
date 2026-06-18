@@ -70,6 +70,13 @@ export async function updateProductAction(id: string, formData: FormData) {
     .getAll("images[]")
     .map((v) => v.toString().trim())
     .filter(Boolean);
+  const colorNames = formData.getAll("colorName[]").map((v) => v.toString());
+  const colorHexes = formData.getAll("colorHex[]").map((v) => v.toString());
+  const colors = colorNames
+    .map((name, i) => ({ name: name.trim(), hex: (colorHexes[i] ?? "").trim() }))
+    .filter((c) => c.name);
+  const category = getStr(formData, "category");
+  const subcategory = getStr(formData, "subcategory");
   const update: Partial<typeof schema.products.$inferInsert> = {
     nameEn: getStr(formData, "nameEn"),
     nameAr: getStr(formData, "nameAr"),
@@ -82,7 +89,10 @@ export async function updateProductAction(id: string, formData: FormData) {
     stock: getNum(formData, "stock") ?? 0,
     sizes: getList(formData, "sizes"),
     tags: getList(formData, "tags"),
+    colors,
     images,
+    ...(category ? { category } : {}),
+    ...(subcategory ? { subcategory } : {}),
     updatedAt: new Date(),
   };
   const actor = await currentActor();

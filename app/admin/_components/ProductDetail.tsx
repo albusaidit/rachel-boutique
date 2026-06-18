@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { updateProductAction } from "@/app/_lib/db/actions";
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { useAdminToast } from "./AdminToast";
@@ -14,6 +14,7 @@ type Product = {
   name: { ar: string; en: string; fr?: string };
   description: { ar: string; en: string; fr?: string };
   category: string;
+  subcategory: string;
   price: number;
   compareAt?: number;
   stock: number;
@@ -23,7 +24,8 @@ type Product = {
   tags: string[];
 };
 
-type Cat = { key: string; ar: string; en: string; fr: string };
+type Sub = { key: string; ar: string; en: string; fr: string };
+type Cat = { key: string; ar: string; en: string; fr: string; subcategories: Sub[] };
 
 export function ProductDetail({
   product,
@@ -38,6 +40,13 @@ export function ProductDetail({
   const { push } = useAdminToast();
   const [pending, start] = useTransition();
   const [images, setImages] = useState<string[]>(product.images);
+  const [categoryKey, setCategoryKey] = useState(product.category);
+  const [subKey, setSubKey] = useState(product.subcategory);
+  const [colors, setColors] = useState(product.colors);
+  const subcategories = useMemo(
+    () => categories.find((c) => c.key === categoryKey)?.subcategories ?? [],
+    [categories, categoryKey],
+  );
   const catLabel =
     categories.find((c) => c.key === product.category)?.[locale] ||
     categories.find((c) => c.key === product.category)?.en ||
@@ -99,6 +108,31 @@ export function ProductDetail({
             <Textarea name="descFr" label={d.product_detail.desc_fr} value={product.description.fr ?? ""} placeholder="—" editable={dbReady} />
           </Section>
 
+          <Section title="Category">
+            <div className="grid grid-cols-2 gap-4">
+              <Select
+                name="category"
+                label="Category"
+                value={categoryKey}
+                editable={dbReady}
+                onChange={(v) => {
+                  setCategoryKey(v);
+                  const subs = categories.find((c) => c.key === v)?.subcategories ?? [];
+                  if (!subs.some((s) => s.key === subKey)) setSubKey(subs[0]?.key ?? "");
+                }}
+                options={categories.map((c) => ({ value: c.key, label: c[locale] || c.en }))}
+              />
+              <Select
+                name="subcategory"
+                label="Subcategory"
+                value={subKey}
+                editable={dbReady}
+                onChange={setSubKey}
+                options={subcategories.map((s) => ({ value: s.key, label: s[locale] || s.en }))}
+              />
+            </div>
+          </Section>
+
           <Section title={d.product_detail.pricing}>
             <div className="grid grid-cols-3 gap-4">
               <Field name="price" label={d.product_detail.price} value={String(product.price)} editable={dbReady} inputMode="numeric" />
@@ -129,21 +163,7 @@ export function ProductDetail({
           </Section>
 
           <Section title={d.product_detail.colors}>
-            <div className="flex flex-wrap gap-3">
-              {product.colors.map((c) => (
-                <div
-                  key={c.name}
-                  className="flex items-center gap-2 border border-[var(--a-line)] px-3 py-2 text-xs"
-                >
-                  <span
-                    className="w-4 h-4 rounded-full ring-1 ring-[var(--a-line)]"
-                    style={{ background: c.hex }}
-                  />
-                  <span>{c.name}</span>
-                  <span className="text-[var(--a-ink-faint)] font-mono">{c.hex}</span>
-                </div>
-              ))}
-            </div>
+            <ColorsEditor colors={colors} onChange={setColors} editable={dbReady} />
           </Section>
         </div>
 
@@ -225,6 +245,112 @@ function Field({
         <span className="text-[11px] text-[var(--a-ink-muted)] mt-1 block">{hint}</span>
       )}
     </label>
+  );
+}
+
+function Select({
+  name,
+  label,
+  value,
+  onChange,
+  options,
+  editable = false,
+}: {
+  name: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  editable?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
+        {label}
+      </span>
+      <select
+        name={name}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={!editable}
+        className={`mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm focus:border-[var(--a-ink)] outline-none rounded-sm ${
+          editable ? "bg-[var(--a-surface)]" : "bg-[var(--a-line-soft)]/40 disabled:cursor-not-allowed"
+        }`}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function ColorsEditor({
+  colors,
+  onChange,
+  editable,
+}: {
+  colors: { name: string; hex: string }[];
+  onChange: (next: { name: string; hex: string }[]) => void;
+  editable: boolean;
+}) {
+  const update = (i: number, patch: Partial<{ name: string; hex: string }>) =>
+    onChange(colors.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
+  const remove = (i: number) => onChange(colors.filter((_, idx) => idx !== i));
+  const add = () => onChange([...colors, { name: "", hex: "#000000" }]);
+  const validHex = (h: string) => /^#[0-9a-fA-F]{6}$/.test(h);
+
+  return (
+    <div className="space-y-2">
+      {colors.map((c, i) => (
+        <div key={i} className="flex items-center gap-2">
+          {/* Hidden inputs are what actually get submitted. */}
+          <input type="hidden" name="colorName[]" value={c.name} />
+          <input type="hidden" name="colorHex[]" value={c.hex} />
+          <input
+            type="color"
+            value={validHex(c.hex) ? c.hex : "#000000"}
+            onChange={(e) => update(i, { hex: e.target.value })}
+            disabled={!editable}
+            aria-label="Pick colour"
+            className="w-9 h-9 rounded-sm border border-[var(--a-line)] bg-transparent disabled:cursor-not-allowed"
+          />
+          <input
+            value={c.name}
+            onChange={(e) => update(i, { name: e.target.value })}
+            disabled={!editable}
+            placeholder="Colour name (e.g. أسود)"
+            className="flex-1 border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] focus:border-[var(--a-ink)] outline-none rounded-sm disabled:bg-[var(--a-line-soft)]/40"
+          />
+          <input
+            value={c.hex}
+            onChange={(e) => update(i, { hex: e.target.value })}
+            disabled={!editable}
+            placeholder="#000000"
+            className="w-28 border border-[var(--a-line)] px-3 py-2 text-sm font-mono bg-[var(--a-surface)] focus:border-[var(--a-ink)] outline-none rounded-sm disabled:bg-[var(--a-line-soft)]/40"
+          />
+          <button
+            type="button"
+            onClick={() => remove(i)}
+            disabled={!editable}
+            aria-label="Remove colour"
+            className="w-8 h-8 shrink-0 rounded-sm text-[var(--a-danger)] hover:bg-[var(--a-danger-bg)] disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={add}
+        disabled={!editable}
+        className="text-xs tracking-[0.15em] uppercase font-medium text-[var(--a-ink-muted)] hover:text-[var(--a-ink)] border border-dashed border-[var(--a-line)] rounded-sm px-3 py-2 w-full disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        + Add colour
+      </button>
+    </div>
   );
 }
 
