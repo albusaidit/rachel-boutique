@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   if (!(await isAuthed())) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  if (!isConfigured()) {
+  if (!(await isConfigured())) {
     return NextResponse.json({ error: "whatsapp_not_configured" }, { status: 503 });
   }
 

@@ -23,7 +23,8 @@ export type AuditAction =
   | "product.bulk_archived"
   | "product.bulk_updated"
   | "product.imported"
-  | "product.reordered";
+  | "product.reordered"
+  | "settings.whatsapp_updated";
 
 export type AuditEntry = {
   id: number;
@@ -48,7 +49,7 @@ export type Actor = {
 export async function logAuditEvent(args: {
   actor: Actor;
   action: AuditAction;
-  targetType: "order" | "product";
+  targetType: "order" | "product" | "settings";
   targetId: string;
   before?: unknown;
   after?: unknown;

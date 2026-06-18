@@ -4,7 +4,7 @@ import { getConfig, persistInbound, verifySignature } from "@/app/_lib/whatsapp/
 
 // Meta verification handshake — they hit this once when you set up the webhook.
 export async function GET(req: Request) {
-  const cfg = getConfig();
+  const cfg = await getConfig();
   if (!cfg) return new NextResponse("not_configured", { status: 503 });
   const url = new URL(req.url);
   const mode = url.searchParams.get("hub.mode");
@@ -31,13 +31,13 @@ type WebhookEntry = { changes?: Array<{ value?: WebhookValue }> };
 type WebhookPayload = { entry?: WebhookEntry[] };
 
 export async function POST(req: Request) {
-  const cfg = getConfig();
+  const cfg = await getConfig();
   if (!cfg) return new NextResponse("not_configured", { status: 503 });
 
   const raw = await req.text();
   const sig = req.headers.get("x-hub-signature-256");
   // Only enforce signature when an app secret is configured.
-  if (cfg.appSecret && !verifySignature(raw, sig)) {
+  if (cfg.appSecret && !(await verifySignature(raw, sig))) {
     return new NextResponse("invalid_signature", { status: 401 });
   }
 

@@ -1,6 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "@/app/_lib/db/client";
 
 const GRAPH_VERSION = "v22.0";
@@ -12,17 +12,44 @@ export type WhatsappConfig = {
   appSecret: string | null;
 };
 
-export function getConfig(): WhatsappConfig | null {
-  const token = process.env.WHATSAPP_TOKEN;
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
-  const appSecret = process.env.WHATSAPP_APP_SECRET ?? null;
+// Settings-table keys that hold the WhatsApp credentials (configured in the
+// admin portal). Env vars are used as a fallback when a key isn't set in the DB.
+export const WA_KEYS = {
+  token: "whatsapp_token",
+  phoneNumberId: "whatsapp_phone_id",
+  verifyToken: "whatsapp_verify_token",
+  appSecret: "whatsapp_app_secret",
+} as const;
+
+async function readWaSettings(): Promise<Record<string, string>> {
+  if (!isDbConfigured()) return {};
+  try {
+    const rows = await getDb()
+      .select()
+      .from(schema.settings)
+      .where(inArray(schema.settings.key, Object.values(WA_KEYS)));
+    const map: Record<string, string> = {};
+    for (const r of rows) map[r.key] = r.value;
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+export async function getConfig(): Promise<WhatsappConfig | null> {
+  const s = await readWaSettings();
+  const pick = (key: string, env: string | undefined) =>
+    (s[key]?.trim() || env?.trim() || "");
+  const token = pick(WA_KEYS.token, process.env.WHATSAPP_TOKEN);
+  const phoneNumberId = pick(WA_KEYS.phoneNumberId, process.env.WHATSAPP_PHONE_NUMBER_ID);
+  const verifyToken = pick(WA_KEYS.verifyToken, process.env.WHATSAPP_VERIFY_TOKEN);
+  const appSecret = pick(WA_KEYS.appSecret, process.env.WHATSAPP_APP_SECRET) || null;
   if (!token || !phoneNumberId || !verifyToken) return null;
   return { token, phoneNumberId, verifyToken, appSecret };
 }
 
-export function isConfigured(): boolean {
-  return getConfig() !== null;
+export async function isConfigured(): Promise<boolean> {
+  return (await getConfig()) !== null;
 }
 
 function normalizePhone(raw: string): string {
@@ -91,7 +118,7 @@ export async function sendText(
   body: string,
   opts?: { orderId?: number | null },
 ): Promise<{ ok: true; id: string | null } | { ok: false; error: string }> {
-  const cfg = getConfig();
+  const cfg = await getConfig();
   if (!cfg) return { ok: false, error: "whatsapp_not_configured" };
   const normalized = normalizePhone(to);
   if (!normalized) return { ok: false, error: "invalid_phone" };
@@ -121,7 +148,7 @@ export async function sendTemplate(args: {
   bodyText: string; // human-readable copy to store in the message log
   orderId?: number | null;
 }): Promise<{ ok: true; id: string | null } | { ok: false; error: string }> {
-  const cfg = getConfig();
+  const cfg = await getConfig();
   if (!cfg) return { ok: false, error: "whatsapp_not_configured" };
   const normalized = normalizePhone(args.to);
   if (!normalized) return { ok: false, error: "invalid_phone" };
@@ -149,8 +176,8 @@ export async function sendTemplate(args: {
   return { ok: true, id: result.data.messages?.[0]?.id ?? null };
 }
 
-export function verifySignature(rawBody: string, headerSignature: string | null): boolean {
-  const cfg = getConfig();
+export async function verifySignature(rawBody: string, headerSignature: string | null): Promise<boolean> {
+  const cfg = await getConfig();
   if (!cfg || !cfg.appSecret) return false;
   if (!headerSignature) return false;
   const expected = "sha256=" + createHmac("sha256", cfg.appSecret).update(rawBody).digest("hex");

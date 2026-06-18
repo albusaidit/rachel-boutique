@@ -12,9 +12,11 @@ const LOCALE_LABEL: Record<Locale, string> = { ar: "AR", en: "EN", fr: "FR" };
 export function SettingsView({
   settings,
   dbReady = false,
+  children,
 }: {
   settings: SettingsMap;
   dbReady?: boolean;
+  children?: React.ReactNode;
 }) {
   const { d, locale, setLocale, theme, setTheme } = useAdminLocale();
   const { push } = useAdminToast();
@@ -143,6 +145,8 @@ export function SettingsView({
             <ReadOnlyRow label={d.settings.session_lifetime} value="7 days" />
           </Group>
         </div>
+
+        {children}
       </div>
     </form>
   );

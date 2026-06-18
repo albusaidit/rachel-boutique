@@ -17,7 +17,7 @@ async function currentActor(): Promise<Actor> {
 }
 
 async function autoSendStage(orderId: number, stage: Stage): Promise<void> {
-  if (!waConfigured()) return;
+  if (!(await waConfigured())) return;
   let order: OrderRow | null = null;
   try {
     order = await findOrder(orderId);
@@ -276,7 +276,7 @@ export async function listOrderMessagesAction(orderId: number) {
 
 export async function sendWhatsappReplyAction(orderId: number, body: string) {
   if (!(await isAuthed())) throw new Error("unauthorized");
-  if (!waConfigured()) {
+  if (!(await waConfigured())) {
     return { ok: false as const, error: "whatsapp_not_configured" };
   }
   const trimmed = body.trim();
