@@ -9,6 +9,14 @@ import { useAdminToast } from "./AdminToast";
 import { DemoBanner, PageHeader } from "./PageHeader";
 import { ImageUploader } from "./ImageUploader";
 
+function slugify(raw: string): string {
+  return raw
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 type Sub = { key: string; ar: string; en: string; fr: string };
 type Cat = {
   key: string;
@@ -37,6 +45,15 @@ export function ProductCreate({
       : categories[0]?.key ?? "",
   );
   const [images, setImages] = useState<string[]>([]);
+  const [nameEn, setNameEn] = useState("");
+  const [advanced, setAdvanced] = useState(false);
+  const [idOverride, setIdOverride] = useState("");
+  const [slugOverride, setSlugOverride] = useState("");
+
+  // ID and slug are auto-generated from the English name so they never have to
+  // be typed by hand; the advanced panel lets you override them if needed.
+  const effectiveSlug = slugify(slugOverride || nameEn);
+  const effectiveId = slugify(idOverride || nameEn);
 
   const subcategories = useMemo(
     () => categories.find((c) => c.key === categoryKey)?.subcategories ?? [],
@@ -86,27 +103,64 @@ export function ProductCreate({
           {!dbReady && <DemoBanner>{d.common.demo_banner}</DemoBanner>}
 
           <Section title={d.product_detail.identity}>
-            <div className="grid grid-cols-2 gap-4">
-              <Field
-                name="id"
-                label="ID"
-                placeholder="e.g. c-tunic-04"
-                hint="Lowercase letters, digits, hyphens. Used in URLs."
-                required
-                mono
-              />
-              <Field
-                name="slug"
-                label={d.product_detail.slug}
-                placeholder="e.g. silk-tunic"
-                hint="Lowercase letters, digits, hyphens."
-                required
-                mono
-              />
-            </div>
-            <Field name="nameEn" label={d.product_detail.name_en} required />
+            <Field
+              name="nameEn"
+              label={d.product_detail.name_en}
+              required
+              value={nameEn}
+              onChange={setNameEn}
+            />
             <Field name="nameAr" label={d.product_detail.name_ar} dir="rtl" required />
             <Field name="nameFr" label={d.product_detail.name_fr} placeholder="—" />
+
+            {/* Auto-generated identifiers — submitted via hidden inputs. */}
+            <input type="hidden" name="id" value={effectiveId} />
+            <input type="hidden" name="slug" value={effectiveSlug} />
+            <div className="rounded-sm border border-[var(--a-line)] bg-[var(--a-line-soft)]/40 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-xs text-[var(--a-ink-muted)] min-w-0">
+                  <span className="tracking-[0.15em] uppercase">Web address</span>
+                  <div className="font-mono text-[var(--a-ink)] truncate">
+                    /product/{effectiveSlug || "…"}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAdvanced((v) => !v)}
+                  className="shrink-0 text-xs text-[var(--a-ink-muted)] hover:text-[var(--a-ink)] underline"
+                >
+                  {advanced ? "Done" : "Edit ID / link"}
+                </button>
+              </div>
+              {advanced && (
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <label className="block">
+                    <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
+                      ID
+                    </span>
+                    <input
+                      value={idOverride}
+                      onChange={(e) => setIdOverride(e.target.value)}
+                      placeholder={slugify(nameEn) || "auto"}
+                      autoComplete="off"
+                      className="mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] focus:border-[var(--a-ink)] outline-none rounded-sm font-mono"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
+                      {d.product_detail.slug}
+                    </span>
+                    <input
+                      value={slugOverride}
+                      onChange={(e) => setSlugOverride(e.target.value)}
+                      placeholder={slugify(nameEn) || "auto"}
+                      autoComplete="off"
+                      className="mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] focus:border-[var(--a-ink)] outline-none rounded-sm font-mono"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
           </Section>
 
           <Section title={d.product_detail.description}>
@@ -217,6 +271,8 @@ function Field({
   mono,
   inputMode,
   required = false,
+  value,
+  onChange,
 }: {
   name: string;
   label: string;
@@ -226,7 +282,10 @@ function Field({
   mono?: boolean;
   inputMode?: "numeric" | "text";
   required?: boolean;
+  value?: string;
+  onChange?: (v: string) => void;
 }) {
+  const controlled = onChange !== undefined;
   return (
     <label className="block">
       <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
@@ -240,6 +299,7 @@ function Field({
         inputMode={inputMode}
         required={required}
         autoComplete="off"
+        {...(controlled ? { value, onChange: (e) => onChange!(e.target.value) } : {})}
         className={`mt-1.5 w-full border border-[var(--a-line)] px-3 py-2 text-sm bg-[var(--a-surface)] focus:border-[var(--a-ink)] outline-none rounded-sm ${
           mono ? "font-mono" : ""
         }`}

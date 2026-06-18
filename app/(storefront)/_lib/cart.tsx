@@ -9,7 +9,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { findProduct, type Product } from "./products";
+import { type Product } from "./products";
+import { useProducts } from "./products-context";
 
 export type CartLine = {
   productId: string;
@@ -77,6 +78,7 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { findProduct } = useProducts();
   const [{ lines }, dispatch] = useReducer(reducer, { lines: [] });
   const [isOpen, setIsOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -128,7 +130,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       close: () => setIsOpen(false),
       lineWithProduct: () => withProducts,
     };
-  }, [lines, isOpen]);
+  }, [lines, isOpen, findProduct]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

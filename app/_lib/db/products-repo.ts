@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "./client";
 import {
@@ -46,6 +47,10 @@ export async function listProducts(opts?: { includeDeleted?: boolean }): Promise
     return staticProducts;
   }
 }
+
+// Request-deduped list of live (non-deleted) products for the storefront, so
+// the layout and the page render the same data with a single DB read.
+export const getStorefrontProducts = cache((): Promise<Product[]> => listProducts());
 
 export async function findProductRepo(
   idOrSlug: string,

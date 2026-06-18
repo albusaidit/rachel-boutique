@@ -3,8 +3,9 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { products, categoryTree, pickLocale, type CategoryKey } from "../_lib/products";
+import { categoryTree, pickLocale, type CategoryKey } from "../_lib/products";
 import { LOCALES, useLocale, type Locale } from "../_lib/i18n";
+import { useProducts } from "../_lib/products-context";
 import { useStorefrontUI } from "../_lib/storefront-ui";
 import { useScrollLock } from "../_lib/scroll-lock";
 import { BrandMark } from "./BrandMark";
@@ -13,6 +14,7 @@ const LOCALE_LABEL: Record<Locale, string> = { ar: "AR", en: "EN", fr: "FR" };
 
 export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { locale, setLocale, d } = useLocale();
+  const { products } = useProducts();
   const { openQuickView, openBrowse } = useStorefrontUI();
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<CategoryKey | null>(null);
@@ -40,7 +42,7 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
           p.subcategory.includes(q),
       )
       .slice(0, 5);
-  }, [query]);
+  }, [query, products]);
 
   const priceLocaleTag = locale === "ar" ? "ar-SA" : locale === "fr" ? "fr-FR" : "en-US";
 

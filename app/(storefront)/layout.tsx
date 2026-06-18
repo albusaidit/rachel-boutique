@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Bodoni_Moda, Inter, Noto_Naskh_Arabic, Noto_Kufi_Arabic } from "next/font/google";
 import { CartProvider } from "./_lib/cart";
 import { LocaleProvider } from "./_lib/i18n";
+import { ProductsProvider } from "./_lib/products-context";
 import { StorefrontUIProvider } from "./_lib/storefront-ui";
 import { ToastProvider } from "./_components/Toast";
+import { getStorefrontProducts } from "@/app/_lib/db/products-repo";
 import "./boutique.css";
 
 const display = Bodoni_Moda({
@@ -39,16 +41,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function BoutiqueLayout({ children }: { children: React.ReactNode }) {
+export default async function BoutiqueLayout({ children }: { children: React.ReactNode }) {
+  const products = await getStorefrontProducts();
   return (
     <LocaleProvider
       className={`${display.variable} ${sans.variable} ${arabic.variable} ${arabicDisplay.variable} boutique-root`}
     >
-      <CartProvider>
-        <ToastProvider>
-          <StorefrontUIProvider>{children}</StorefrontUIProvider>
-        </ToastProvider>
-      </CartProvider>
+      <ProductsProvider products={products}>
+        <CartProvider>
+          <ToastProvider>
+            <StorefrontUIProvider>{children}</StorefrontUIProvider>
+          </ToastProvider>
+        </CartProvider>
+      </ProductsProvider>
     </LocaleProvider>
   );
 }
