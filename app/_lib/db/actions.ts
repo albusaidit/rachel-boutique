@@ -673,11 +673,11 @@ export async function bulkImportProductsAction(
       if (typeof row.stock === "number" && Number.isFinite(row.stock)) {
         update.stock = Math.max(0, Math.floor(row.stock));
       }
-      if (row.category !== undefined && row.category.trim()) update.category = row.category.trim();
-      if (row.subcategory !== undefined && row.subcategory.trim()) update.subcategory = row.subcategory.trim();
       if (Array.isArray(row.sizes)) update.sizes = row.sizes;
       if (Array.isArray(row.tags)) update.tags = row.tags;
-      if (Array.isArray(row.images) && row.images.length > 0) update.images = row.images;
+      // images, category & subcategory are admin-managed — never overwrite them
+      // from the sheet on update, or admin edits revert on the next import.
+      // (New products still take them from the sheet on create above.)
       const hasUpdate = Object.keys(update).length > 1; // updatedAt always present
       if (!hasUpdate) {
         results.push({ rowNumber, id, status: "skipped" });

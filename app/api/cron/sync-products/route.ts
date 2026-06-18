@@ -2,10 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "@/app/_lib/db/client";
-import {
-  bulkImportProductsAction,
-  type ImportProductRow,
-} from "@/app/_lib/db/actions";
+import { type ImportProductRow } from "@/app/_lib/db/actions";
 import {
   isSheetsConfigured,
   readSheetRows,
@@ -175,11 +172,12 @@ export async function GET(req: Request) {
       if (typeof row.stock === "number" && Number.isFinite(row.stock)) {
         update.stock = Math.max(0, Math.floor(row.stock));
       }
-      if (row.category?.trim()) update.category = row.category.trim();
-      if (row.subcategory?.trim()) update.subcategory = row.subcategory.trim();
       if (Array.isArray(row.sizes)) update.sizes = row.sizes;
       if (Array.isArray(row.tags)) update.tags = row.tags;
-      if (Array.isArray(row.images) && row.images.length > 0) update.images = row.images;
+      // images, category & subcategory are managed in the admin (image uploads,
+      // category dropdowns). The sheet must NOT overwrite them on update or admin
+      // edits revert on the next sync. New products still take them from the sheet
+      // on create (above).
       if (Object.keys(update).length <= 1) continue;
       try {
         await db.update(schema.products).set(update).where(eq(schema.products.id, row.id));
