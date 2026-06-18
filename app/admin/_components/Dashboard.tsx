@@ -63,18 +63,38 @@ function Stat({
   value,
   hint,
   trend,
+  delta,
+  deltaTitle,
 }: {
   label: string;
   value: React.ReactNode;
   hint?: string;
   trend?: number[];
+  delta?: number;
+  deltaTitle?: string;
 }) {
+  const hasDelta = typeof delta === "number" && Number.isFinite(delta);
+  const up = (delta ?? 0) >= 0;
   return (
     <div className="bg-[var(--a-surface)] border border-[var(--a-line)] p-5 relative overflow-hidden">
       <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
         {label}
       </div>
-      <div className="text-3xl font-semibold mt-2 num">{value}</div>
+      <div className="flex items-baseline gap-2 mt-2">
+        <span className="text-3xl font-semibold num">{value}</span>
+        {hasDelta && (
+          <span
+            title={deltaTitle}
+            className="inline-flex items-center gap-0.5 text-[11px] font-semibold num"
+            style={{ color: up ? "var(--a-success)" : "var(--a-danger)" }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transform: up ? "none" : "scaleY(-1)" }}>
+              <path d="m5 15 7-7 7 7" />
+            </svg>
+            {Math.abs(delta as number).toFixed(0)}%
+          </span>
+        )}
+      </div>
       {hint && <div className="text-xs text-[var(--a-ink-muted)] mt-1.5">{hint}</div>}
       {trend && trend.length > 0 && (
         <div className="absolute bottom-2 inset-inline-end-2 opacity-70 pointer-events-none">
@@ -189,6 +209,17 @@ export function Dashboard({
   const numLocale = locale === "ar" ? "ar-SA" : locale === "fr" ? "fr-FR" : "en-US";
   const currency = "MAD";
 
+  // Revenue trend: last half of the series vs the prior half (≈ last 15d vs
+  // previous 15d). Only shown when there's enough signal to be meaningful.
+  const revenueDelta = (() => {
+    if (!revenue || revenue.length < 4 || total30d <= 0) return undefined;
+    const mid = Math.floor(revenue.length / 2);
+    const prior = revenue.slice(0, mid).reduce((s, v) => s + v, 0);
+    const recent = revenue.slice(mid).reduce((s, v) => s + v, 0);
+    if (prior <= 0) return undefined;
+    return ((recent - prior) / prior) * 100;
+  })();
+
   const pickName = (n: { ar: string; en: string; fr?: string }) =>
     n[locale] || n.en || n.ar;
 
@@ -268,6 +299,8 @@ export function Dashboard({
             value={`${currency} ${total30d.toLocaleString(numLocale)}`}
             hint={orderStats.total > 0 ? `${orderStats.total} orders total` : d.dashboard.kpi_revenue_hint}
             trend={revenue}
+            delta={revenueDelta}
+            deltaTitle="Last 15 days vs previous 15 days"
           />
           <Stat
             label={d.dashboard.kpi_orders}
