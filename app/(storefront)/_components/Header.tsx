@@ -49,8 +49,14 @@ export function Header() {
 
           <div className="text-center">
             <a href="#top" className="inline-block" aria-label="RACHÉL">
-              <BrandMark size="sm" priority className="md:hidden" />
-              <BrandMark size="md" priority className="hidden md:block" />
+              {/* Wrapper spans carry the responsive hide/show — .wordmark sets
+                  display:inline-block which would otherwise override `hidden`. */}
+              <span className="md:hidden">
+                <BrandMark size="sm" priority />
+              </span>
+              <span className="hidden md:block">
+                <BrandMark size="md" priority />
+              </span>
             </a>
           </div>
 
