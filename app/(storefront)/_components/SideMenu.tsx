@@ -63,10 +63,10 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
             animate={{ x: 0 }}
             exit={{ x: locale === "ar" ? "-100%" : "100%" }}
             transition={{ type: "tween", duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed top-0 w-[420px] max-w-[90vw] h-screen bg-white z-[201] overflow-y-auto shadow-2xl"
+            className="fixed top-0 w-[90vw] max-w-[400px] h-screen bg-white z-[201] overflow-y-auto overflow-x-hidden shadow-2xl"
             style={{ insetInlineStart: 0 }}
           >
-            <div className="flex justify-between items-center px-7 py-5 border-b border-[var(--line)] sticky top-0 bg-white z-10">
+            <div className="flex justify-between items-center px-5 py-5 border-b border-[var(--line)] sticky top-0 bg-white z-10">
               <BrandMark size="sm" />
               <button
                 onClick={onClose}
@@ -79,7 +79,7 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
               </button>
             </div>
 
-            <div className="px-7 py-5 border-b border-[var(--line)]">
+            <div className="px-5 py-5 border-b border-[var(--line)]">
               <div className="bg-[var(--cream)] rounded-full px-5 py-3 flex items-center gap-3">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-[var(--ink-muted)]">
                   <circle cx="11" cy="11" r="7" />
@@ -89,8 +89,7 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={d.side_menu.search_placeholder}
-                  className="flex-1 bg-transparent outline-none text-sm placeholder:text-[var(--ink-faint)]"
-                  autoFocus
+                  className="flex-1 min-w-0 bg-transparent outline-none text-sm placeholder:text-[var(--ink-faint)]"
                 />
               </div>
               {results.length > 0 && (
@@ -127,13 +126,36 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
               )}
             </div>
 
+            <div className="px-5 py-4 border-b border-[var(--line)] flex items-center gap-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-[var(--ink-muted)] flex-shrink-0" aria-hidden>
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+              </svg>
+              <div className="flex-1 grid grid-cols-3 gap-1.5 font-sans-latin">
+                {LOCALES.map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => setLocale(l)}
+                    aria-pressed={locale === l}
+                    className={`py-2 text-[11px] tracking-[0.2em] uppercase rounded-md border transition-colors ${
+                      locale === l
+                        ? "bg-[var(--ink)] text-white border-[var(--ink)] font-semibold"
+                        : "bg-white text-[var(--ink-muted)] border-[var(--line)] hover:border-[var(--ink)]"
+                    }`}
+                  >
+                    {LOCALE_LABEL[l]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <nav className="py-3">
               <button
                 onClick={() => {
                   onClose();
                   openBrowse({ type: "tag", key: "new" });
                 }}
-                className="w-full flex justify-between items-center px-7 py-3 text-sm font-medium tracking-wide text-[var(--ink)] hover:bg-[var(--cream)] transition-colors"
+                className="w-full flex justify-between items-center px-5 py-3 text-sm font-medium tracking-wide text-[var(--ink)] hover:bg-[var(--cream)] transition-colors"
               >
                 <span>{d.side_menu.new_this_week}</span>
                 <span className="text-[var(--ink-faint)] rtl:rotate-180">›</span>
@@ -143,7 +165,7 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
                   onClose();
                   openBrowse({ type: "tag", key: "sale" });
                 }}
-                className="w-full flex justify-between items-center px-7 py-3 text-sm font-medium tracking-wide text-[var(--ink)] hover:bg-[var(--cream)] transition-colors border-b border-[var(--line)] mb-2"
+                className="w-full flex justify-between items-center px-5 py-3 text-sm font-medium tracking-wide text-[var(--ink)] hover:bg-[var(--cream)] transition-colors border-b border-[var(--line)] mb-2"
               >
                 <span>{d.side_menu.sale_quick}</span>
                 <span className="text-[var(--ink-faint)] rtl:rotate-180">›</span>
@@ -156,8 +178,8 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
                 return (
                   <motion.div
                     key={cat.key}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     transition={{ delay: 0.08 + i * 0.04 }}
                   >
                     <button
@@ -169,7 +191,7 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
                           openBrowse({ type: "category", key: cat.key });
                         }
                       }}
-                      className="w-full flex justify-between items-center px-7 py-3.5 text-[15px] font-medium tracking-wide hover:bg-[var(--cream)] transition-colors"
+                      className="w-full flex justify-between items-center px-5 py-3.5 text-[15px] font-medium tracking-wide hover:bg-[var(--cream)] transition-colors"
                     >
                       <span className="flex items-center gap-3">
                         <span className="text-lg" aria-hidden>{cat.icon}</span>
@@ -201,7 +223,7 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
                                 onClose();
                                 openBrowse({ type: "subcategory", key: sub.key });
                               }}
-                              className="w-full text-start ps-14 pe-7 py-2.5 text-[13px] text-[var(--ink-soft)] hover:text-[var(--brand)] hover:bg-white transition-colors"
+                              className="w-full text-start ps-11 pe-5 py-2.5 text-[13px] text-[var(--ink-soft)] hover:text-[var(--brand)] hover:bg-white transition-colors"
                             >
                               {sub[locale] || sub.en}
                             </button>
@@ -214,31 +236,16 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
               })}
             </nav>
 
-            <div className="px-7 py-6 border-t border-[var(--line)] mt-4 space-y-3 text-sm text-[var(--ink-muted)]">
+            <div className="px-5 py-6 border-t border-[var(--line)] mt-4 space-y-3 text-sm text-[var(--ink-muted)]">
               <div className="font-medium text-[var(--ink)] tracking-wider text-xs uppercase mb-3">
                 {d.side_menu.contact_us}
               </div>
               <a href="https://api.whatsapp.com/send?phone=212700718587" className="block hover:text-[var(--brand)] transition-colors">
                 {d.side_menu.whatsapp_label}
               </a>
-              <a href="mailto:hello@rachel.com" className="block hover:text-[var(--brand)] transition-colors">
+              <a href="mailto:hello@rachel.com" className="block hover:text-[var(--brand)] transition-colors break-all">
                 hello@rachel.com
               </a>
-              <div className="flex items-center gap-4 pt-3 font-sans-latin">
-                {LOCALES.map((l, idx) => (
-                  <span key={l} className="flex items-center gap-4">
-                    <button
-                      onClick={() => setLocale(l)}
-                      className={`text-[11px] tracking-[0.2em] uppercase transition-colors ${
-                        locale === l ? "text-[var(--ink)]" : "text-[var(--ink-faint)] hover:text-[var(--ink)]"
-                      }`}
-                    >
-                      {LOCALE_LABEL[l]}
-                    </button>
-                    {idx < LOCALES.length - 1 && <span className="text-[var(--line)]">|</span>}
-                  </span>
-                ))}
-              </div>
             </div>
           </motion.aside>
         </>
