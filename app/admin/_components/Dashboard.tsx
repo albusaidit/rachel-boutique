@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { motion, useReducedMotion, useMotionValue, animate as animateMV } from "framer-motion";
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { DemoBanner, PageHeader } from "./PageHeader";
 import { AreaSparkline } from "./AreaSparkline";
@@ -58,6 +60,49 @@ type OrderStats = {
   total: number;
 };
 
+// Smoothly counts a number up from 0 on mount; respects reduced-motion.
+function CountUp({
+  value,
+  prefix = "",
+  suffix = "",
+  locale = "en-US",
+  duration = 1.1,
+}: {
+  value: number;
+  prefix?: string;
+  suffix?: string;
+  locale?: string;
+  duration?: number;
+}) {
+  const reduce = useReducedMotion();
+  const mv = useMotionValue(0);
+  const [display, setDisplay] = useState(() =>
+    reduce ? Math.round(value).toLocaleString(locale) : "0",
+  );
+  useEffect(() => {
+    if (reduce) {
+      setDisplay(Math.round(value).toLocaleString(locale));
+      return;
+    }
+    const controls = animateMV(mv, value, {
+      duration,
+      ease: [0.22, 1, 0.36, 1],
+      onUpdate: (v) => setDisplay(Math.round(v).toLocaleString(locale)),
+    });
+    return () => controls.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, reduce, locale, duration]);
+  return (
+    <>
+      {prefix}
+      {display}
+      {suffix}
+    </>
+  );
+}
+
+const EASE = [0.22, 1, 0.36, 1] as const;
+
 function Stat({
   label,
   value,
@@ -65,6 +110,7 @@ function Stat({
   trend,
   delta,
   deltaTitle,
+  index = 0,
 }: {
   label: string;
   value: React.ReactNode;
@@ -72,11 +118,21 @@ function Stat({
   trend?: number[];
   delta?: number;
   deltaTitle?: string;
+  index?: number;
 }) {
+  const reduce = useReducedMotion();
   const hasDelta = typeof delta === "number" && Number.isFinite(delta);
   const up = (delta ?? 0) >= 0;
   return (
-    <div className="bg-[var(--a-surface)] border border-[var(--a-line)] p-5 relative overflow-hidden">
+    <motion.div
+      className="group bg-[var(--a-surface)] border border-[var(--a-line)] p-5 relative overflow-hidden"
+      initial={reduce ? false : { opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: EASE, delay: 0.12 + index * 0.08 }}
+      whileHover={reduce ? undefined : { y: -4 }}
+    >
+      {/* accent bar that wipes in on hover */}
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-[var(--a-accent)] origin-left rtl:origin-right scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out" />
       <div className="text-[11px] tracking-[0.2em] uppercase text-[var(--a-ink-muted)] font-medium">
         {label}
       </div>
@@ -101,7 +157,7 @@ function Stat({
           <AreaSparkline values={trend} width={84} height={28} />
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -126,6 +182,8 @@ function ActionCard({
   label,
   href,
   hint,
+  locale = "en-US",
+  index = 0,
 }: {
   tone: "danger" | "warning" | "info" | "success";
   icon: "bell" | "box" | "alert" | "trend";
@@ -133,7 +191,10 @@ function ActionCard({
   label: string;
   href: string;
   hint?: string;
+  locale?: string;
+  index?: number;
 }) {
+  const reduce = useReducedMotion();
   const toneClass =
     tone === "danger"
       ? "bg-[var(--a-danger-bg)] text-[var(--a-danger)] border-[var(--a-danger-line)]"
@@ -143,22 +204,32 @@ function ActionCard({
           ? "bg-[var(--a-success-bg)] text-[var(--a-success)] border-transparent"
           : "bg-[var(--a-info-bg)] text-[var(--a-ink)] border-transparent";
   return (
-    <Link
-      href={href}
-      className={`flex items-center gap-4 p-4 rounded-md border hover:opacity-90 transition-opacity ${toneClass}`}
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: EASE, delay: index * 0.07 }}
+      whileHover={reduce ? undefined : { y: -3, scale: 1.01 }}
+      whileTap={reduce ? undefined : { scale: 0.99 }}
     >
-      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/40 flex-shrink-0">
-        <ActionIcon name={icon} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-2xl font-semibold leading-none num">{count}</div>
-        <div className="text-sm font-medium mt-1 truncate">{label}</div>
-        {hint && <div className="text-xs opacity-80 mt-0.5 truncate">{hint}</div>}
-      </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden className="opacity-60">
-        <path d="m9 18 6-6-6-6" />
-      </svg>
-    </Link>
+      <Link
+        href={href}
+        className={`group flex items-center gap-4 p-4 rounded-md border transition-shadow hover:shadow-[0_6px_20px_-8px_rgba(0,0,0,0.25)] ${toneClass}`}
+      >
+        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/40 flex-shrink-0 transition-transform duration-300 group-hover:scale-110">
+          <ActionIcon name={icon} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-2xl font-semibold leading-none num">
+            <CountUp value={count} locale={locale} duration={0.9} />
+          </div>
+          <div className="text-sm font-medium mt-1 truncate">{label}</div>
+          {hint && <div className="text-xs opacity-80 mt-0.5 truncate">{hint}</div>}
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden className="opacity-60 transition-transform duration-300 group-hover:translate-x-1 rtl:group-hover:-translate-x-1">
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </Link>
+    </motion.div>
   );
 }
 
@@ -205,6 +276,16 @@ export function Dashboard({
   setupStatus?: SetupStatus;
 }) {
   const { d, locale } = useAdminLocale();
+  const reduce = useReducedMotion();
+  // Reusable scroll-into-view reveal for the lower content sections.
+  const reveal = reduce
+    ? {}
+    : {
+        initial: { opacity: 0, y: 24 },
+        whileInView: { opacity: 1, y: 0 },
+        viewport: { once: true, amount: 0.15 },
+        transition: { duration: 0.55, ease: EASE },
+      };
   const total30d = orderStats.revenue30d || revenue.reduce((s, v) => s + v, 0);
   const numLocale = locale === "ar" ? "ar-SA" : locale === "fr" ? "fr-FR" : "en-US";
   const currency = "MAD";
@@ -257,6 +338,8 @@ export function Dashboard({
                   label="Pending orders to confirm"
                   href="/admin/orders"
                   hint="Reply on WhatsApp"
+                  locale={numLocale}
+                  index={0}
                 />
               )}
               {orderStats.today > 0 && (
@@ -267,6 +350,8 @@ export function Dashboard({
                   label="New orders today"
                   href="/admin/orders"
                   hint={`${currency} ${orderStats.revenueToday.toLocaleString(numLocale)} today`}
+                  locale={numLocale}
+                  index={1}
                 />
               )}
               {stats.outOfStock > 0 && (
@@ -277,6 +362,8 @@ export function Dashboard({
                   label="Out of stock"
                   href="/admin/inventory"
                   hint="Restock before they're missed"
+                  locale={numLocale}
+                  index={2}
                 />
               )}
               {stats.lowStock > 0 && (
@@ -287,6 +374,8 @@ export function Dashboard({
                   label="Low stock (≤ 5)"
                   href="/admin/inventory"
                   hint="Plan a restock"
+                  locale={numLocale}
+                  index={3}
                 />
               )}
             </div>
@@ -296,34 +385,38 @@ export function Dashboard({
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat
             label={d.dashboard.kpi_revenue}
-            value={`${currency} ${total30d.toLocaleString(numLocale)}`}
+            value={<CountUp value={total30d} prefix={`${currency} `} locale={numLocale} />}
             hint={orderStats.total > 0 ? `${orderStats.total} orders total` : d.dashboard.kpi_revenue_hint}
             trend={revenue}
             delta={revenueDelta}
             deltaTitle="Last 15 days vs previous 15 days"
+            index={0}
           />
           <Stat
             label={d.dashboard.kpi_orders}
-            value={orderStats.total}
+            value={<CountUp value={orderStats.total} locale={numLocale} />}
             hint={
               orderStats.pending > 0
                 ? `${orderStats.pending} pending, ${orderStats.confirmed} confirmed`
                 : d.dashboard.kpi_orders_hint
             }
+            index={1}
           />
           <Stat
             label={d.dashboard.kpi_products}
-            value={stats.productsCount}
+            value={<CountUp value={stats.productsCount} locale={numLocale} />}
             hint={d.dashboard.kpi_products_hint(stats.inventoryValue)}
+            index={2}
           />
           <Stat
             label={d.dashboard.kpi_alerts}
-            value={stats.outOfStock + stats.lowStock}
+            value={<CountUp value={stats.outOfStock + stats.lowStock} locale={numLocale} />}
             hint={d.dashboard.kpi_alerts_hint(stats.outOfStock, stats.lowStock)}
+            index={3}
           />
         </section>
 
-        <section className="bg-[var(--a-surface)] border border-[var(--a-line)]">
+        <motion.section className="bg-[var(--a-surface)] border border-[var(--a-line)]" {...reveal}>
           <div className="px-5 py-4 border-b border-[var(--a-line)] flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold tracking-wide">{d.dashboard.revenue_title}</h2>
@@ -333,7 +426,7 @@ export function Dashboard({
             </div>
             <div className="text-end">
               <div className="text-2xl font-semibold num">
-                {currency} {total30d.toLocaleString(numLocale)}
+                <CountUp value={total30d} prefix={`${currency} `} locale={numLocale} />
               </div>
               <div className="text-[11px] text-[var(--a-ink-muted)] num">
                 {orderStats.total > 0 ? "Live data from orders" : "Awaiting first order"}
@@ -342,7 +435,7 @@ export function Dashboard({
           </div>
           <div className="px-2 pt-3 pb-4">
             {total30d > 0 ? (
-              <AreaSparkline values={revenue} width={1200} height={180} responsive />
+              <AreaSparkline values={revenue} width={1200} height={180} responsive animate />
             ) : (
               <div className="h-[180px] flex flex-col items-center justify-center text-center gap-2 text-[var(--a-ink-muted)]">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="opacity-50">
@@ -356,10 +449,10 @@ export function Dashboard({
               </div>
             )}
           </div>
-        </section>
+        </motion.section>
 
         {(pendingOrders.length > 0 || lowStockList.length > 0) && (
-          <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <motion.section className="grid grid-cols-1 lg:grid-cols-2 gap-6" {...reveal}>
             {pendingOrders.length > 0 && (
               <div className="bg-[var(--a-surface)] border border-[var(--a-line)]">
                 <div className="px-5 py-4 border-b border-[var(--a-line)] flex items-center justify-between">
@@ -421,10 +514,10 @@ export function Dashboard({
                 </ul>
               </div>
             )}
-          </section>
+          </motion.section>
         )}
 
-        <section className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
+        <motion.section className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6" {...reveal}>
           <div className="bg-[var(--a-surface)] border border-[var(--a-line)]">
             <div className="px-5 py-4 border-b border-[var(--a-line)] flex items-center justify-between">
               <h2 className="text-sm font-semibold tracking-wide">{d.dashboard.catalog_title}</h2>
@@ -454,9 +547,12 @@ export function Dashboard({
                         {cat.subCount} subcategories · {cat.productCount} products
                       </div>
                       <div className="mt-2 h-1 bg-[var(--a-line-soft)] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[var(--a-accent)]"
-                          style={{ width: `${pct}%` }}
+                        <motion.div
+                          className="h-full bg-[var(--a-accent)] rounded-full"
+                          initial={reduce ? false : { width: 0 }}
+                          whileInView={{ width: `${pct}%` }}
+                          viewport={{ once: true, amount: 0.5 }}
+                          transition={{ duration: 0.9, ease: EASE, delay: 0.1 }}
                         />
                       </div>
                     </div>
@@ -511,9 +607,9 @@ export function Dashboard({
               )}
             </ul>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="bg-[var(--a-surface)] border border-[var(--a-line)]">
+        <motion.section className="bg-[var(--a-surface)] border border-[var(--a-line)]" {...reveal}>
           <div className="px-5 py-4 border-b border-[var(--a-line)]">
             <h2 className="text-sm font-semibold tracking-wide">{d.dashboard.activity_title}</h2>
           </div>
@@ -524,15 +620,22 @@ export function Dashboard({
           ) : (
             <ul className="divide-y divide-[var(--a-line-soft)]">
               {activity.map((it, i) => (
-                <li key={i} className="px-5 py-3 flex items-center gap-3">
+                <motion.li
+                  key={i}
+                  className="px-5 py-3 flex items-center gap-3"
+                  initial={reduce ? false : { opacity: 0, x: -8 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, amount: 0.6 }}
+                  transition={{ duration: 0.4, ease: EASE, delay: Math.min(i * 0.05, 0.4) }}
+                >
                   <ActivityIcon kind={it.kind} />
                   <div className="flex-1 text-sm">{activityText(it)}</div>
                   <div className="text-xs text-[var(--a-ink-faint)] num">{it.when}</div>
-                </li>
+                </motion.li>
               ))}
             </ul>
           )}
-        </section>
+        </motion.section>
       </div>
     </>
   );
