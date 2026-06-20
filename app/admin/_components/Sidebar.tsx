@@ -80,17 +80,25 @@ export function Sidebar({ role }: { role?: "owner" | "admin" | "fulfillment" | "
     <aside className="bg-[var(--a-surface)] border-e border-[var(--a-line)] flex flex-col min-h-screen w-full">
       <div className="px-6 py-6 border-b border-[var(--a-line)]">
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, y: -10, filter: "blur(6px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           <Link href="/admin" className="group inline-flex flex-col">
-            <span className="text-lg tracking-[0.18em] font-serif uppercase transition-[letter-spacing] duration-500 group-hover:tracking-[0.28em]">
-              RACHÉL
+            <span className="inline-flex items-center gap-2">
+              <span className="admin-logo-shimmer text-lg tracking-[0.18em] font-serif uppercase transition-[letter-spacing] duration-500 group-hover:tracking-[0.32em]">
+                RACHÉL
+              </span>
+              <span className="admin-logo-dot" aria-hidden />
             </span>
-            <span className="text-[10px] tracking-[0.3em] uppercase text-[var(--a-ink-muted)] mt-0.5">
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.35 }}
+              className="text-[10px] tracking-[0.3em] uppercase text-[var(--a-ink-muted)] mt-0.5"
+            >
               Admin
-            </span>
+            </motion.span>
           </Link>
         </motion.div>
       </div>

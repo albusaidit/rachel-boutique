@@ -79,9 +79,10 @@ export function MobileNav({
                 <Link
                   href="/admin"
                   onClick={onClose}
-                  className="text-lg tracking-[0.18em] font-serif uppercase"
+                  className="inline-flex items-center gap-2 text-lg tracking-[0.18em] font-serif uppercase"
                 >
-                  RACHÉL
+                  <span className="admin-logo-shimmer">RACHÉL</span>
+                  <span className="admin-logo-dot" aria-hidden />
                 </Link>
                 <div className="text-[10px] tracking-[0.3em] uppercase text-[var(--a-ink-muted)] mt-0.5">
                   Admin
