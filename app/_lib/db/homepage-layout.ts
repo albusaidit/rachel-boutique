@@ -45,7 +45,7 @@ export const DEFAULT_LAYOUT: SectionEntry[] = [
   { key: "marquee", visible: true },
   { key: "category_banners", visible: true },
   { key: "new_arrivals", visible: true },
-  { key: "story", visible: true },
+  { key: "story", visible: false },
   { key: "bestsellers", visible: true },
   { key: "perfumes", visible: true },
   { key: "beauty", visible: true },
