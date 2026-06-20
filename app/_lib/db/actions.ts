@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import { STOREFRONT_PRODUCTS_TAG } from "./products-repo";
 import { eq } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "./client";
 import { getCurrentUser, isAuthed } from "@/app/admin/_lib/auth";
@@ -112,6 +113,7 @@ export async function updateProductAction(id: string, formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/audit");
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
 }
 
 export async function createProductAction(formData: FormData) {
@@ -183,6 +185,7 @@ export async function createProductAction(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/audit");
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
   return { id };
 }
 
@@ -240,6 +243,7 @@ export async function deleteProductAction(id: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/audit");
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
 }
 
 export async function restoreProductAction(id: string) {
@@ -262,6 +266,7 @@ export async function restoreProductAction(id: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/audit");
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
 }
 
 export async function bulkDeleteProductsAction(ids: string[]) {
@@ -287,6 +292,7 @@ export async function bulkDeleteProductsAction(ids: string[]) {
   revalidatePath("/admin");
   revalidatePath("/admin/audit");
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
   return { count: ids.length };
 }
 
@@ -347,6 +353,7 @@ export async function quickUpdateProductAction(id: string, patch: ProductPatch) 
   revalidatePath("/admin");
   revalidatePath("/admin/audit");
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
   return { ok: true };
 }
 
@@ -356,6 +363,7 @@ export async function saveHomepageContentAction(content: unknown) {
   const { saveHomepageContent } = await import("./homepage-content");
   await saveHomepageContent(content as never);
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
   revalidatePath("/admin/homepage/content");
   revalidatePath("/admin/homepage");
   return { ok: true };
@@ -375,6 +383,7 @@ export async function saveHomepageLayoutAction(
   );
   revalidatePath("/admin/homepage");
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
   return { ok: true };
 }
 
@@ -705,6 +714,7 @@ export async function bulkImportProductsAction(
   revalidatePath("/admin/inventory");
   revalidatePath("/admin");
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
 
   return { created, updated, errors, results };
 }
@@ -733,6 +743,7 @@ export async function reorderProductsAction(orderedIds: string[]) {
   revalidatePath("/admin");
   revalidatePath("/admin/audit");
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
   return { count: orderedIds.length };
 }
 
@@ -764,6 +775,7 @@ export async function bulkUpdateProductsAction(
   revalidatePath("/admin");
   revalidatePath("/admin/audit");
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
   return { count };
 }
 
@@ -840,6 +852,7 @@ export async function archiveProductAction(id: string, archive: boolean) {
   revalidatePath("/admin");
   revalidatePath("/admin/audit");
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
 }
 
 export async function bulkArchiveProductsAction(ids: string[], archive: boolean) {
@@ -864,6 +877,7 @@ export async function bulkArchiveProductsAction(ids: string[], archive: boolean)
   revalidatePath("/admin");
   revalidatePath("/admin/audit");
   revalidatePath("/");
+  updateTag(STOREFRONT_PRODUCTS_TAG);
   return { count: ids.length };
 }
 

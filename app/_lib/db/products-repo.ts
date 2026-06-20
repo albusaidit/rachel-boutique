@@ -1,5 +1,5 @@
 import "server-only";
-import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "./client";
 import {
@@ -48,9 +48,17 @@ export async function listProducts(opts?: { includeDeleted?: boolean }): Promise
   }
 }
 
-// Request-deduped list of live (non-deleted) products for the storefront, so
-// the layout and the page render the same data with a single DB read.
-export const getStorefrontProducts = cache((): Promise<Product[]> => listProducts());
+// Cached list of live products for the storefront. Cached across requests (not
+// just per-request) so the public store hits the database at most once per
+// revalidate window instead of on every visit — this keeps Neon compute usage
+// low. Product mutations call revalidateTag("storefront-products") to refresh
+// it immediately, and it auto-refreshes every 5 minutes as a safety net.
+export const STOREFRONT_PRODUCTS_TAG = "storefront-products";
+export const getStorefrontProducts = unstable_cache(
+  async (): Promise<Product[]> => listProducts(),
+  ["storefront-products"],
+  { tags: [STOREFRONT_PRODUCTS_TAG], revalidate: 300 },
+);
 
 export async function findProductRepo(
   idOrSlug: string,

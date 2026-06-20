@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { STOREFRONT_PRODUCTS_TAG } from "@/app/_lib/db/products-repo";
 import { eq } from "drizzle-orm";
 import { getDb, isDbConfigured, schema } from "@/app/_lib/db/client";
 import { type ImportProductRow } from "@/app/_lib/db/actions";
@@ -212,6 +213,7 @@ export async function GET(req: Request) {
   revalidatePath("/admin/products/import");
   revalidatePath("/admin/inventory");
   revalidatePath("/");
+  revalidateTag(STOREFRONT_PRODUCTS_TAG, "max");
 
   return NextResponse.json({
     ok: true,
