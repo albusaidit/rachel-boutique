@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { useAdminLocale } from "../_lib/i18n-admin";
 import { LogoutButton } from "./LogoutButton";
 
@@ -72,15 +73,26 @@ export function Sidebar({ role }: { role?: "owner" | "admin" | "fulfillment" | "
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 
+  // Flat index across groups so the entrance stagger feels continuous.
+  let navIndex = -1;
+
   return (
     <aside className="bg-[var(--a-surface)] border-e border-[var(--a-line)] flex flex-col min-h-screen w-full">
       <div className="px-6 py-6 border-b border-[var(--a-line)]">
-        <Link href="/admin" className="text-lg tracking-[0.18em] font-serif uppercase">
-          RACHÉL
-        </Link>
-        <div className="text-[10px] tracking-[0.3em] uppercase text-[var(--a-ink-muted)] mt-0.5">
-          Admin
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <Link href="/admin" className="group inline-flex flex-col">
+            <span className="text-lg tracking-[0.18em] font-serif uppercase transition-[letter-spacing] duration-500 group-hover:tracking-[0.28em]">
+              RACHÉL
+            </span>
+            <span className="text-[10px] tracking-[0.3em] uppercase text-[var(--a-ink-muted)] mt-0.5">
+              Admin
+            </span>
+          </Link>
+        </motion.div>
       </div>
       <nav className="flex-1 px-3 py-4 overflow-y-auto scrollbar-thin">
         {GROUPS_FINAL.map((group, gi) => (
@@ -91,28 +103,49 @@ export function Sidebar({ role }: { role?: "owner" | "admin" | "fulfillment" | "
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const active = isActive(item.href);
+                navIndex += 1;
                 return (
-                  <Link
+                  <motion.div
                     key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={`relative flex items-center gap-3 ps-3 pe-3 py-2.5 rounded-md text-sm transition-colors ${
-                      active
-                        ? "bg-[var(--a-line-soft)] text-[var(--a-ink)] font-medium"
-                        : "text-[var(--a-ink-soft)] hover:bg-[var(--a-line-soft)] hover:text-[var(--a-ink)]"
-                    }`}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.15 + navIndex * 0.05 }}
                   >
-                    {active && (
+                    <Link
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      className={`group relative flex items-center gap-3 ps-3 pe-3 py-2.5 rounded-md text-sm transition-colors ${
+                        active
+                          ? "text-[var(--a-ink)] font-medium"
+                          : "text-[var(--a-ink-soft)] hover:text-[var(--a-ink)]"
+                      }`}
+                    >
+                      {active && (
+                        <motion.span
+                          layoutId="nav-active-pill"
+                          aria-hidden
+                          className="absolute inset-0 rounded-md bg-[var(--a-line-soft)]"
+                          transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                        />
+                      )}
+                      {active && (
+                        <motion.span
+                          layoutId="nav-active-bar"
+                          aria-hidden
+                          className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-[var(--a-accent)]"
+                          transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                        />
+                      )}
                       <span
-                        aria-hidden
-                        className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-[var(--a-accent)]"
-                      />
-                    )}
-                    <span className={active ? "text-[var(--a-accent)]" : "text-[var(--a-ink-faint)]"}>
-                      <NavIcon name={item.icon} />
-                    </span>
-                    <span>{item.label}</span>
-                  </Link>
+                        className={`relative z-10 transition-transform duration-300 group-hover:scale-110 ${
+                          active ? "text-[var(--a-accent)]" : "text-[var(--a-ink-faint)] group-hover:text-[var(--a-ink)]"
+                        }`}
+                      >
+                        <NavIcon name={item.icon} />
+                      </span>
+                      <span className="relative z-10">{item.label}</span>
+                    </Link>
+                  </motion.div>
                 );
               })}
             </div>

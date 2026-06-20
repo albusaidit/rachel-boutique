@@ -74,16 +74,9 @@ function CountUp({
   locale?: string;
   duration?: number;
 }) {
-  const reduce = useReducedMotion();
   const mv = useMotionValue(0);
-  const [display, setDisplay] = useState(() =>
-    reduce ? Math.round(value).toLocaleString(locale) : "0",
-  );
+  const [display, setDisplay] = useState("0");
   useEffect(() => {
-    if (reduce) {
-      setDisplay(Math.round(value).toLocaleString(locale));
-      return;
-    }
     const controls = animateMV(mv, value, {
       duration,
       ease: [0.22, 1, 0.36, 1],
@@ -91,7 +84,7 @@ function CountUp({
     });
     return () => controls.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, reduce, locale, duration]);
+  }, [value, locale, duration]);
   return (
     <>
       {prefix}
