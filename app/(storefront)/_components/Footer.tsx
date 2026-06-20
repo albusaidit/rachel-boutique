@@ -24,7 +24,6 @@ export function Footer() {
   const columns = [
     { title: d.footer.shop_title, links: d.footer.shop_links },
     { title: d.footer.service_title, links: d.footer.service_links },
-    { title: d.footer.brand_title, links: d.footer.brand_links },
   ];
 
   return (
@@ -34,7 +33,7 @@ export function Footer() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.6 }}
-        className="max-w-[1500px] mx-auto px-5 md:px-8 py-16 md:py-20 grid grid-cols-1 md:grid-cols-[1.4fr_repeat(3,1fr)] gap-10 md:gap-8 border-b border-[var(--line)]"
+        className="max-w-[1500px] mx-auto px-5 md:px-8 py-16 md:py-20 grid grid-cols-1 md:grid-cols-[1.4fr_repeat(2,1fr)] gap-10 md:gap-8 border-b border-[var(--line)]"
       >
         <div>
           <div className="mb-5">
