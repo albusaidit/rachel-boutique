@@ -214,3 +214,21 @@
   .admin-logo-shimmer { animation: none; }
   .admin-logo-dot { animation: none; }
 }
+
+/* ===== Glassmorphism surfaces ===== */
+/* Frost every surface panel so the ambient aurora glows softly through. */
+.admin-root .bg-\[var\(--a-surface\)\] {
+  background-color: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+}
+.admin-root[data-theme="dark"] .bg-\[var\(--a-surface\)\] {
+  background-color: rgba(20, 20, 23, 0.6);
+}
+/* Crisp 1px "glass edge" highlight on the main framing panels. */
+.admin-root .border-\[var\(--a-line\)\] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.admin-root[data-theme="dark"] .border-\[var\(--a-line\)\] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}

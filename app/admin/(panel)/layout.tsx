@@ -4,6 +4,7 @@ import { isDbConfigured } from "@/app/_lib/db/client";
 import { AdminToastProvider } from "../_components/AdminToast";
 import { Sidebar } from "../_components/Sidebar";
 import { Topbar } from "../_components/Topbar";
+import { WelcomeSplash } from "../_components/WelcomeSplash";
 
 export default async function AdminPanelLayout({
   children,
@@ -16,6 +17,7 @@ export default async function AdminPanelLayout({
 
   return (
     <AdminToastProvider>
+      <WelcomeSplash name={user.name || user.username} />
       <div aria-hidden className="admin-aurora">
         <span className="blob blob-1" />
         <span className="blob blob-2" />

@@ -148,13 +148,6 @@ function LoginForm() {
       >
         {busy ? d.login.submitting : d.login.submit}
       </button>
-      <div className="text-[11px] text-[var(--a-ink-muted)] leading-relaxed border-t border-[var(--a-line)] pt-4">
-        {d.login.hint_first_time}{" "}
-        <code className="bg-[var(--a-line-soft)] px-1.5 py-0.5 rounded">ADMIN_USERNAME</code>{" "}
-        /{" "}
-        <code className="bg-[var(--a-line-soft)] px-1.5 py-0.5 rounded">ADMIN_PASSWORD</code>.{" "}
-        {d.login.hint_env}
-      </div>
     </form>
   );
 }
