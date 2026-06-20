@@ -5,11 +5,16 @@ import { useState } from "react";
 import { useLocale } from "../_lib/i18n";
 import { useToast } from "./Toast";
 import { BrandMark } from "./BrandMark";
+import { SizeGuide } from "./SizeGuide";
 
 export function Footer() {
   const { d } = useLocale();
   const [email, setEmail] = useState("");
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const { push } = useToast();
+
+  // The "Size guide" service link (index 1) opens a modal instead of a dead href.
+  const sizeGuideLabel = d.footer.service_links[1];
 
   const subscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,16 +87,28 @@ export function Footer() {
           <div key={col.title}>
             <h4 className="text-xs tracking-[0.3em] uppercase font-semibold mb-5">{col.title}</h4>
             <ul className="space-y-3">
-              {col.links.map((link) => (
-                <li key={link}>
-                  <a
-                    href="#"
-                    className="text-sm text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors"
-                  >
-                    {link}
-                  </a>
-                </li>
-              ))}
+              {col.links.map((link) =>
+                link === sizeGuideLabel ? (
+                  <li key={link}>
+                    <button
+                      type="button"
+                      onClick={() => setSizeGuideOpen(true)}
+                      className="text-sm text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors text-start"
+                    >
+                      {link}
+                    </button>
+                  </li>
+                ) : (
+                  <li key={link}>
+                    <a
+                      href="#"
+                      className="text-sm text-[var(--ink-muted)] hover:text-[var(--brand)] transition-colors"
+                    >
+                      {link}
+                    </a>
+                  </li>
+                ),
+              )}
             </ul>
           </div>
         ))}
@@ -105,6 +122,8 @@ export function Footer() {
           <a href="#" className="hover:text-[var(--ink)] transition-colors">{d.footer.legal}</a>
         </div>
       </div>
+
+      <SizeGuide open={sizeGuideOpen} onClose={() => setSizeGuideOpen(false)} />
     </footer>
   );
 }
