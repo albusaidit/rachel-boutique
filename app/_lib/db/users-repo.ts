@@ -17,6 +17,24 @@ export type AdminUser = {
   createdAt: string;
 };
 
+// Neon's serverless compute scales to zero after idle; the first query after a
+// cold start can fail with a retryable error. Auth reads gate every admin page,
+// so a single blip would surface as a 500. Retry a few times with backoff.
+async function withDbRetry<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 300 * (i + 1)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 function rowToUser(r: typeof schema.adminUsers.$inferSelect): AdminUser {
   return {
     id: r.id,
@@ -47,11 +65,13 @@ export async function findAdminUserByUsername(
   username: string,
 ): Promise<typeof schema.adminUsers.$inferSelect | null> {
   if (!isDbConfigured()) return null;
-  const rows = await getDb()
-    .select()
-    .from(schema.adminUsers)
-    .where(eq(schema.adminUsers.username, username))
-    .limit(1);
+  const rows = await withDbRetry(() =>
+    getDb()
+      .select()
+      .from(schema.adminUsers)
+      .where(eq(schema.adminUsers.username, username))
+      .limit(1),
+  );
   return rows[0] ?? null;
 }
 
@@ -59,11 +79,13 @@ export async function findAdminUserById(
   id: number,
 ): Promise<AdminUser | null> {
   if (!isDbConfigured()) return null;
-  const rows = await getDb()
-    .select()
-    .from(schema.adminUsers)
-    .where(eq(schema.adminUsers.id, id))
-    .limit(1);
+  const rows = await withDbRetry(() =>
+    getDb()
+      .select()
+      .from(schema.adminUsers)
+      .where(eq(schema.adminUsers.id, id))
+      .limit(1),
+  );
   if (rows[0] && rows[0].active) return rowToUser(rows[0]);
   return null;
 }
