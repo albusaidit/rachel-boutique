@@ -57,6 +57,13 @@
   line-height: 1;
 }
 
+/* Arabic script joins its letters — applying letter-spacing (Tailwind `tracking-*`)
+   breaks that rhythm and makes words look spaced-out/wrong. Neutralize it for
+   Arabic across the storefront, keeping it only on the Latin wordmark logo. */
+.boutique-root[lang="ar"] *:not(.wordmark) {
+  letter-spacing: normal !important;
+}
+
 @keyframes shimmer {
   0% { background-position: -400% 0; }
   100% { background-position: 400% 0; }
