@@ -117,3 +117,62 @@
   --a-ink-muted: #b0b0aa;
   --a-ink-faint: #767672;
 }
+
+/* ===== Ambient aurora background ===== */
+.admin-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.admin-aurora .blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.4;
+  will-change: transform;
+}
+.admin-aurora .blob-1 {
+  width: 44vw;
+  height: 44vw;
+  left: -10vw;
+  top: -12vh;
+  background: radial-gradient(circle at 35% 35%, rgba(159, 18, 57, 0.6), transparent 70%);
+  animation: aurora-1 19s ease-in-out infinite alternate;
+}
+.admin-aurora .blob-2 {
+  width: 40vw;
+  height: 40vw;
+  right: -8vw;
+  top: 6vh;
+  background: radial-gradient(circle at 50% 50%, rgba(196, 124, 54, 0.5), transparent 70%);
+  animation: aurora-2 23s ease-in-out infinite alternate;
+}
+.admin-aurora .blob-3 {
+  width: 42vw;
+  height: 42vw;
+  left: 32vw;
+  bottom: -18vh;
+  background: radial-gradient(circle at 50% 50%, rgba(120, 150, 215, 0.42), transparent 70%);
+  animation: aurora-3 27s ease-in-out infinite alternate;
+}
+.admin-root[data-theme="dark"] .admin-aurora .blob {
+  opacity: 0.32;
+  filter: blur(100px);
+}
+@keyframes aurora-1 {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(7vw, 6vh, 0) scale(1.18); }
+}
+@keyframes aurora-2 {
+  from { transform: translate3d(0, 0, 0) scale(1.05); }
+  to { transform: translate3d(-6vw, 9vh, 0) scale(0.92); }
+}
+@keyframes aurora-3 {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-9vw, -7vh, 0) scale(1.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-aurora .blob { animation: none; }
+}

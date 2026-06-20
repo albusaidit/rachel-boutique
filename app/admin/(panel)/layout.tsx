@@ -16,7 +16,12 @@ export default async function AdminPanelLayout({
 
   return (
     <AdminToastProvider>
-      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] min-h-screen">
+      <div aria-hidden className="admin-aurora">
+        <span className="blob blob-1" />
+        <span className="blob blob-2" />
+        <span className="blob blob-3" />
+      </div>
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-[240px_1fr] min-h-screen">
         <div className="hidden md:flex">
           <Sidebar role={user.role} />
         </div>
