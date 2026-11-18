@@ -25,7 +25,7 @@ export default async function AdminPanelLayout({
       </div>
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-[240px_1fr] min-h-screen">
         <div className="hidden md:flex">
-          <Sidebar role={user.role} />
+          <Sidebar role={user.role} userName={user.name || user.username} />
         </div>
         <div className="flex flex-col min-w-0">
           <Topbar dbReady={dbReady} role={user.role} />

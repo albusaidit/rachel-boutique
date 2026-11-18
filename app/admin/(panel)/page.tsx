@@ -109,17 +109,30 @@ export default async function AdminDashboardPage() {
   const lowStockList = products
     .filter((p) => p.stock > 0 && p.stock <= 5)
     .sort((a, b) => a.stock - b.stock)
-    .slice(0, 5)
+    .slice(0, 8)
     .map((p) => ({
       id: p.id,
       name: p.name,
       stock: p.stock,
       image: p.images[0],
+      price: p.price,
+      category: p.category,
     }));
+
+  const statusCounts: Record<string, number> = {
+    pending: 0,
+    confirmed: 0,
+    shipped: 0,
+    delivered: 0,
+    cancelled: 0,
+  };
+  for (const o of orders) {
+    statusCounts[o.status] = (statusCounts[o.status] ?? 0) + 1;
+  }
 
   const pendingOrders = orders
     .filter((o) => o.status === "pending")
-    .slice(0, 5)
+    .slice(0, 8)
     .map((o) => ({
       id: o.id,
       customerName: o.customerName,
@@ -127,25 +140,32 @@ export default async function AdminDashboardPage() {
       city: o.city,
       subtotal: o.subtotal,
       currency: o.currency,
-      itemCount: o.items.length,
       createdAt: o.createdAt,
+      items: o.items.map((it) => ({
+        name: it.name,
+        size: it.size,
+        color: it.color,
+        qty: it.qty,
+        unitPrice: it.unitPrice,
+      })),
     }));
 
-  const activity = [
-    ...orders.slice(0, 3).map((o) => ({
-      kind: "order" as const,
-      label: `Order #${o.id} from ${o.customerName}`,
-      when: new Date(o.createdAt).toLocaleDateString(),
-    })),
-    ...products
-      .filter((p) => p.stock > 0 && p.stock <= 5)
-      .slice(0, 3)
-      .map((p) => ({ kind: "low" as const, name: p.name, qty: p.stock, when: "now" })),
-    ...products
-      .filter((p) => p.tags.includes("sale"))
-      .slice(0, 2)
-      .map((p) => ({ kind: "sale" as const, name: p.name, when: "1d" })),
-  ];
+  const outOfStockList = products
+    .filter((p) => p.stock === 0)
+    .slice(0, 8)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      stock: p.stock,
+      image: p.images[0],
+      price: p.price,
+      category: p.category,
+    }));
+
+  const lastOrderAt = orders.reduce<string | null>(
+    (latest, o) => (!latest || o.createdAt > latest ? o.createdAt : latest),
+    null,
+  );
 
   return (
     <Dashboard
@@ -162,9 +182,11 @@ export default async function AdminDashboardPage() {
       categories={categoryStats}
       topProducts={fallbackTopProducts}
       revenue={revenue}
-      activity={activity}
+      statusCounts={statusCounts}
       pendingOrders={pendingOrders}
       lowStockList={lowStockList}
+      outOfStockList={outOfStockList}
+      lastOrderAt={lastOrderAt}
       dbReady={isDbConfigured()}
       setupStatus={setupStatus}
     />

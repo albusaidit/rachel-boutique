@@ -36,7 +36,13 @@ function NavIcon({ name }: { name: IconName }) {
   );
 }
 
-export function Sidebar({ role }: { role?: "owner" | "admin" | "fulfillment" | "viewer" }) {
+export function Sidebar({
+  role,
+  userName,
+}: {
+  role?: "owner" | "admin" | "fulfillment" | "viewer";
+  userName?: string;
+}) {
   const { d } = useAdminLocale();
   const pathname = usePathname();
   const isFulfillment = role === "fulfillment";
@@ -77,7 +83,7 @@ export function Sidebar({ role }: { role?: "owner" | "admin" | "fulfillment" | "
   let navIndex = -1;
 
   return (
-    <aside className="bg-[var(--a-surface)] border-e border-[var(--a-line)] flex flex-col min-h-screen w-full">
+    <aside className="admin-sidebar border-e border-[var(--a-line)] flex flex-col min-h-screen w-full sticky top-0 h-screen">
       <div className="px-6 py-6 border-b border-[var(--a-line)]">
         <motion.div
           initial={{ opacity: 0, y: -10, filter: "blur(6px)" }}
@@ -122,31 +128,23 @@ export function Sidebar({ role }: { role?: "owner" | "admin" | "fulfillment" | "
                     <Link
                       href={item.href}
                       aria-current={active ? "page" : undefined}
-                      className={`group relative flex items-center gap-3 ps-3 pe-3 py-2.5 rounded-md text-sm transition-colors ${
+                      className={`group relative flex items-center gap-3 ps-3 pe-3 py-2.5 rounded-lg text-sm transition-colors ${
                         active
-                          ? "text-[var(--a-ink)] font-medium"
-                          : "text-[var(--a-ink-soft)] hover:text-[var(--a-ink)]"
+                          ? "text-white font-medium"
+                          : "text-[var(--a-ink-soft)] hover:text-[var(--a-ink)] hover:bg-[var(--a-line-soft)]"
                       }`}
                     >
                       {active && (
                         <motion.span
                           layoutId="nav-active-pill"
                           aria-hidden
-                          className="absolute inset-0 rounded-md bg-[var(--a-line-soft)]"
-                          transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                        />
-                      )}
-                      {active && (
-                        <motion.span
-                          layoutId="nav-active-bar"
-                          aria-hidden
-                          className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-[var(--a-accent)]"
+                          className="absolute inset-0 rounded-lg bg-[var(--a-accent)] shadow-[0_6px_16px_-6px_rgba(225,29,72,0.6)]"
                           transition={{ type: "spring", stiffness: 500, damping: 38 }}
                         />
                       )}
                       <span
                         className={`relative z-10 transition-transform duration-300 group-hover:scale-110 ${
-                          active ? "text-[var(--a-accent)]" : "text-[var(--a-ink-faint)] group-hover:text-[var(--a-ink)]"
+                          active ? "text-white" : "text-[var(--a-ink-faint)] group-hover:text-[var(--a-ink)]"
                         }`}
                       >
                         <NavIcon name={item.icon} />
@@ -161,6 +159,17 @@ export function Sidebar({ role }: { role?: "owner" | "admin" | "fulfillment" | "
         ))}
       </nav>
       <div className="border-t border-[var(--a-line)] px-3 py-3 space-y-1">
+        {userName && (
+          <div className="flex items-center gap-3 px-3 py-2 mb-1">
+            <div className="w-8 h-8 rounded-full bg-[var(--a-surface-2)] border border-[var(--a-line)] flex items-center justify-center text-xs font-semibold uppercase">
+              {userName.slice(0, 1)}
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium truncate">{userName}</div>
+              <div className="text-[11px] text-[var(--a-ink-muted)] capitalize">{role ?? "admin"}</div>
+            </div>
+          </div>
+        )}
         <Link
           href="/"
           target="_blank"

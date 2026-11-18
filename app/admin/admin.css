@@ -1,7 +1,7 @@
 .admin-root {
   font-size: 16px;
   line-height: 1.55;
-  --a-bg: #fafaf9;
+  --a-bg: #f6f5f7;
   --a-surface: #ffffff;
   --a-surface-2: #f6f6f4;
   --a-line: #e8e8e6;
@@ -20,6 +20,7 @@
   --a-danger: #b13838;
   --a-danger-bg: #fbecec;
   --a-danger-line: #f1c4c4;
+  --a-info: #3b6fb6;
   --a-info-bg: #eaf2fb;
 
   background: var(--a-bg);
@@ -48,6 +49,7 @@
   --a-danger: #e57373;
   --a-danger-bg: rgba(229, 115, 115, 0.12);
   --a-danger-line: rgba(229, 115, 115, 0.3);
+  --a-info: #7fa6e0;
   --a-info-bg: rgba(120, 160, 220, 0.1);
 
   color-scheme: dark;
@@ -118,63 +120,20 @@
   --a-ink-faint: #767672;
 }
 
-/* ===== Ambient aurora background ===== */
+/* ===== Calm background ===== */
+/* A single soft wash at the top of the page instead of moving blobs. */
 .admin-aurora {
   position: fixed;
   inset: 0;
   z-index: 0;
-  overflow: hidden;
   pointer-events: none;
+  background:
+    radial-gradient(60vw 40vh at 70% -10%, rgba(159, 18, 57, 0.06), transparent 70%),
+    radial-gradient(50vw 40vh at 20% -15%, rgba(120, 110, 200, 0.08), transparent 70%);
 }
-.admin-aurora .blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.4;
-  will-change: transform;
-}
-.admin-aurora .blob-1 {
-  width: 44vw;
-  height: 44vw;
-  left: -10vw;
-  top: -12vh;
-  background: radial-gradient(circle at 35% 35%, rgba(159, 18, 57, 0.6), transparent 70%);
-  animation: aurora-1 19s ease-in-out infinite alternate;
-}
-.admin-aurora .blob-2 {
-  width: 40vw;
-  height: 40vw;
-  right: -8vw;
-  top: 6vh;
-  background: radial-gradient(circle at 50% 50%, rgba(196, 124, 54, 0.5), transparent 70%);
-  animation: aurora-2 23s ease-in-out infinite alternate;
-}
-.admin-aurora .blob-3 {
-  width: 42vw;
-  height: 42vw;
-  left: 32vw;
-  bottom: -18vh;
-  background: radial-gradient(circle at 50% 50%, rgba(120, 150, 215, 0.42), transparent 70%);
-  animation: aurora-3 27s ease-in-out infinite alternate;
-}
-.admin-root[data-theme="dark"] .admin-aurora .blob {
-  opacity: 0.32;
-  filter: blur(100px);
-}
-@keyframes aurora-1 {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(7vw, 6vh, 0) scale(1.18); }
-}
-@keyframes aurora-2 {
-  from { transform: translate3d(0, 0, 0) scale(1.05); }
-  to { transform: translate3d(-6vw, 9vh, 0) scale(0.92); }
-}
-@keyframes aurora-3 {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(-9vw, -7vh, 0) scale(1.2); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .admin-aurora .blob { animation: none; }
+.admin-aurora .blob { display: none; }
+.admin-root[data-theme="dark"] .admin-aurora {
+  background: radial-gradient(60vw 40vh at 70% -10%, rgba(225, 29, 72, 0.07), transparent 70%);
 }
 
 /* ===== Animated logo wordmark ===== */
@@ -215,20 +174,70 @@
   .admin-logo-dot { animation: none; }
 }
 
-/* ===== Glassmorphism surfaces ===== */
-/* Frost every surface panel so the ambient aurora glows softly through. */
-.admin-root .bg-\[var\(--a-surface\)\] {
-  background-color: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
+/* ===== Dark sidebar ===== */
+/* Re-scope the colour tokens so every child (logo, links, logout) adapts. */
+.admin-root .admin-sidebar {
+  --a-surface: #17141c;
+  --a-surface-2: #201c26;
+  --a-line: rgba(255, 255, 255, 0.08);
+  --a-line-soft: rgba(255, 255, 255, 0.06);
+  --a-ink: #f6f3f5;
+  --a-ink-soft: #cdc7d1;
+  --a-ink-muted: #a39cab;
+  --a-ink-faint: #7b7484;
+  --a-accent: #e11d48;
+  background: var(--a-surface);
+  color: var(--a-ink);
 }
-.admin-root[data-theme="dark"] .bg-\[var\(--a-surface\)\] {
-  background-color: rgba(20, 20, 23, 0.6);
+.admin-root[data-theme="dark"] .admin-sidebar {
+  --a-surface: #0f0d13;
 }
-/* Crisp 1px "glass edge" highlight on the main framing panels. */
-.admin-root .border-\[var\(--a-line\)\] {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+/* ===== Dashboard surfaces ===== */
+.admin-root .dash-card {
+  background: var(--a-surface);
+  border: 1px solid var(--a-line);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(20, 16, 30, 0.04), 0 4px 16px -8px rgba(20, 16, 30, 0.08);
+  min-width: 0;
 }
-.admin-root[data-theme="dark"] .border-\[var\(--a-line\)\] {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+.admin-root[data-theme="dark"] .dash-card {
+  box-shadow: none;
+}
+.admin-root .dash-tile {
+  height: 100%;
+  border-radius: 14px;
+}
+.admin-root .dash-tile-link {
+  transition: background-color 0.15s ease;
+}
+.admin-root .dash-tile-link:hover {
+  background: var(--a-surface-2);
+}
+.admin-root .dash-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--a-surface);
+  border: 1px solid var(--a-line);
+  color: var(--a-ink);
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.admin-root .dash-btn:hover {
+  border-color: var(--a-ink-faint);
+}
+.admin-root .dash-btn-primary {
+  background: var(--a-accent);
+  border-color: var(--a-accent);
+  color: var(--a-accent-fg);
+}
+.admin-root .dash-btn-primary:hover {
+  opacity: 0.9;
+  border-color: var(--a-accent);
 }
